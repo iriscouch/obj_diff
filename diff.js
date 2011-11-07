@@ -160,18 +160,23 @@ function doc_diff_atleast(from, to, required) {
 
 function typeOf(value) {
   var s = typeof value;
+  var as_str;
 
   if (s === 'object') {
     if(!value)
-      s = 'null';
-    else {
-      //if (value instanceof Array)
-      if(Object.prototype.toString.apply(value) === '[object Array]') {
-        s = 'array';
-      }
-    }
-  } else if(s === 'function' && value instanceof RegExp)
-    return 'regexp';
+      return 'null';
+
+    as_str = Object.prototype.toString.apply(value);
+
+    if(value instanceof RegExp || as_str === '[object RegExp]')
+      return 'regexp'; // NodeJS 0.5
+
+    if(value instanceof Array || as_str === '[object Array]')
+      return 'array';
+  }
+
+  else if(s === 'function' && value instanceof RegExp)
+    return 'regexp'; // NodeJS 0.4
 
   return s;
 }
