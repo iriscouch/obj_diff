@@ -1,15 +1,18 @@
 { "name": "obj_diff"
-, "version": "0.2.1"
-, "author": { "name": "Jason Smith"
-            , "email": "jhs@iriscouch.com" }
-, "description": "Find all differences between Javascript objects"
-, "tags"       : ["couchdb"]
+, "description": "Identify differences between objects; assert permitted and mandatory differences"
+, "version": "0.3.0"
+
+, "author": { "name":"Jason Smith", "email":"jhs@iriscouch.com", "url":"http://www.iriscouch.com/" }
+, "tags"       : ["couchdb", "security", "diff", "couchapp"]
 , "homepage": "http://github.com/iriscouch/obj_diff"
 , "repository": { "type": "git"
                 , "url": "git://github.com/iriscouch/obj_diff" }
 , "engines": [ "node" ]
 
-, "devDependencies": {
+, "dependencies": { "defaultable": "0.7.0"
+                  }
+
+, "devDependencies": { "tap": "0.0.10"
                      }
 , "main": "./api"
 }
