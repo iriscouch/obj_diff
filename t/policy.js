@@ -40,44 +40,44 @@ var fixtures = {
 function make_tester(t) {
   return tester;
 
-function tester(method, from_id, to_id, policy, expected) {
-  var from_merge = {}, to_merge = {};
+  function tester(method, from_id, to_id, policy, expected) {
+    var from_merge = {}, to_merge = {};
 
-  if(typeof from_id == 'object') {
-    from_merge = from_id;
-    from_id = from_merge.base;
-    delete from_merge.base;
+    if(typeof from_id == 'object') {
+      from_merge = from_id;
+      from_id = from_merge.base;
+      delete from_merge.base;
+    }
+    if(typeof to_id == 'object') {
+      to_merge = to_id;
+      to_id = to_merge.base;
+      delete to_merge.base;
+    }
+
+    var from = JSON.parse(JSON.stringify(fixtures[from_id]));
+    var to   = JSON.parse(JSON.stringify(fixtures[to_id]));
+
+    var k;
+    for(k in from_merge) {
+      if(from_merge[k] === undefined)
+        delete from[k];
+      else
+        from[k] = from_merge[k];
+    }
+
+    for(k in to_merge) {
+      if(to_merge[k] === undefined)
+        delete to[k];
+      else
+        to[k] = to_merge[k];
+    }
+
+    method = method.replace(/^doc_diff_/, "");
+    var result = obj_diff[method](from, to, policy);
+    var message = "from="+JS(from) + " to="+JS(to) + " policy="+JS(policy);
+
+    return t.same(result, expected, message);
   }
-  if(typeof to_id == 'object') {
-    to_merge = to_id;
-    to_id = to_merge.base;
-    delete to_merge.base;
-  }
-
-  var from = JSON.parse(JSON.stringify(fixtures[from_id]));
-  var to   = JSON.parse(JSON.stringify(fixtures[to_id]));
-
-  var k;
-  for(k in from_merge) {
-    if(from_merge[k] === undefined)
-      delete from[k];
-    else
-      from[k] = from_merge[k];
-  }
-
-  for(k in to_merge) {
-    if(to_merge[k] === undefined)
-      delete to[k];
-    else
-      to[k] = to_merge[k];
-  }
-
-  method = method.replace(/^doc_diff_/, "");
-  var result = obj_diff[method](from, to, policy);
-  var message = "from="+JS(from) + " to="+JS(to) + " policy="+JS(policy);
-
-  return t.same(result, expected, message);
-}
 
 }
 
