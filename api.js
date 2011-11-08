@@ -17,10 +17,10 @@ require('defaultable').def(module,
   }, function(module, exports, DEFS, require) {
 
 var diff = require('./diff');
-var API = { 'diff'   : diff.doc_diff
-          , 'atmost' : diff.doc_diff_atmost
-          , 'atleast': diff.doc_diff_atleast
-          };
+
+var API = diff.doc_diff;
+API.atmost  = diff.doc_diff_atmost;
+API.atleast = diff.doc_diff_atleast;
 
 module.exports = API;
 
