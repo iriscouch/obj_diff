@@ -46,7 +46,7 @@ function doc_diff(from, to) {
     }
   })
 
-  return diff;
+  return encode(diff);
 }
 
 function change_matches(allowed_change, from_value, to_value) {
@@ -157,6 +157,35 @@ function doc_diff_atleast(from, to, required) {
 //
 // Utilities
 //
+
+function encode(obj) {
+  var type = typeOf(obj);
+  var result, a;
+  var literals = {'string':1, 'null':1, 'number':1, 'boolean':1};
+
+  if(type === 'undefined')
+    return ['undefined'];
+
+  else if(type in literals)
+    return obj;
+
+  else if(type === 'array') {
+    result = [];
+    for(a = 0; a < obj.length; a++)
+      result[a] = encode(obj[a]);
+    return result;
+  }
+
+  else if(type === 'object') {
+    result = {};
+    for (a in obj)
+      if(obj.hasOwnProperty(a))
+        result[a] = encode(obj[a]);
+    return result;
+  }
+
+  throw new Error('Unknown type: ' + type);
+}
 
 function typeOf(value) {
   var s = typeof value;
