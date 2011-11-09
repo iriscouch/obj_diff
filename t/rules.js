@@ -16,6 +16,7 @@
 
 var test = require('tap').test
   , util = require('util')
+  , I = function(obj) { return util.inspect(obj, false, 10) }
   , obj_diff = require('../api')
   , rules = require('../rules')
   ;
@@ -125,10 +126,10 @@ test('Falsy types', function(t) {
 
 function tester(t, expected) {
   return function(message, from, to, key, oldval, newval) {
-    var diff = obj_diff(from, to);
-
     // Round-trip through JSON to make sure it's JSON-storable.
+    var diff = obj_diff(from, to);
     diff = JSON.parse(JSON.stringify(diff));
+    // NOTE: Leaving this as a plain object to see if rules can still understand it.
 
     var changed_keys = Object.keys(diff.changes);
     t.equal(changed_keys.length, 1, 'Rule tests should have only one change');
@@ -137,9 +138,15 @@ function tester(t, expected) {
     var change_from = diff.changes[change_key].from;
     var change_to   = diff.changes[change_key].to;
 
+    // Round-trip through JSON to make sure it's JSON-storable.
     var rule = new rules.Rule(key, oldval, newval);
-    var result = rule.match(change_key, change_from, change_to);
+    //console.error('Before: ' + I(rule))
+    rule = JSON.parse(JSON.stringify(rule));
+    //console.error('JSON: ' + I(rule))
+    rule = new rules.Rule(rule);
+    //console.error('After: ' + I(rule))
 
+    var result = rule.match(change_key, change_from, change_to);
     t.equal(result, expected, message);
   }
 }

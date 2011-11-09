@@ -27,15 +27,33 @@ module.exports = { 'Rule': Rule
 
 function Rule (key, from, to) {
   var self = this;
+  var args = Array.prototype.slice.apply(arguments);
+  console.error('Args: ' + JSON.stringify(args))
 
-  if(arguments.length != 3)
+  if(args.length === 1 && lib.typeOf(args[0]) === 'object') {
+    ; ['key', 'from', 'to'].forEach(function(req) {
+      if(! (req in args[0]))
+        throw new Error('Missing "'+req+'" for rule object: ' + JSON.stringify(args));
+    })
+
+    self.key  = args[0].key;
+    self.from = lib.decode(args[0].from);
+    self.to   = lib.decode(args[0].to);
+  }
+
+  else if(args.length === 3) {
+    self.key  = key;
+    self.from = lib.decode(from);
+    self.to   = lib.decode(to);
+  }
+
+  else
     throw new Error('Invalid rules parameters: ' + JSON.stringify([key, from, to]));
-
-  self.key  = key;
-  self.from = lib.decode(from);
-  self.to   = lib.decode(to);
 }
 
+Rule.prototype.toJSON = function(key) {
+  return lib.encode(this);
+}
 
 Rule.prototype.match = function(key, from, to) {
   var self = this;

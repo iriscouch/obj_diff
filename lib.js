@@ -40,16 +40,22 @@ function encode(obj) {
   var type = typeOf(obj);
   var result, a;
   var literals = {'string':1, 'null':1, 'number':1, 'boolean':1};
+  var types = [String, Number, Boolean, Object, Array];
 
-  if(type === 'undefined')
+  if(type in literals)
+    return obj;
+
+  else if(type === 'undefined')
     return ['undefined'];
 
-  else if(type in literals)
-    return obj;
+  else if(~ types.indexOf(obj))
+    return [obj.name];
 
   else if(type === 'array') {
     if(obj.length === 1 && obj[0] === 'gone')
       return ['gone'];
+    if(obj.length === 1 && obj[0] === 'any')
+      return ['any'];
     else
       return ['array', obj.map(encode)];
   }
@@ -62,7 +68,7 @@ function encode(obj) {
     return result;
   }
 
-  throw new Error('Unknown type: ' + type);
+  throw new Error('Unknown type "' + type + '": ' + obj);
 }
 
 function decode(obj) {
@@ -91,6 +97,10 @@ function decode(obj) {
     return Number;
   else if(type === 'Boolean')
     return Boolean;
+  else if(type === 'Object')
+    return Object;
+  else if(type === 'Array')
+    return Array;
 
   throw new Error('Unknown object to decode: ' + require('util').inspect(obj));
   throw new Error('Unknown object to decode: ' + JSON.stringify(obj));
