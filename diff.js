@@ -16,7 +16,6 @@ var defaultable = require('defaultable');
 
 defaultable(module,
   { "revisions": true
-  , "assert"   : false
   }, function(module, exports, DEFS, require) {
 
 var lib = require('./lib')
@@ -25,6 +24,7 @@ var lib = require('./lib')
   ;
 
 module.exports = { 'diff': diff
+                 , 'Diff': Diff
                  , 'GONE': lib.GONE
                  , 'ANY' : lib.ANY
                  };
@@ -80,22 +80,18 @@ function obj_diff(from, to, result, prefix) {
   return result;
 }
 
-function Diff (opts) {
+function Diff (old_diff) {
   var self = this;
 
-  self.changes = null;
-
-  opts = defaultable.merge(opts || {}, DEFS);
-  self.is_asserting = !! opts.assert;
+  old_diff = old_diff || {};
+  Object.keys(old_diff).forEach(function(key) {
+    self[key] = old_diff[key];
+  })
 }
 
 Diff.prototype.toJSON = function(key) {
   return lib.encode(this);
 }
-
-
-Diff.prototype.GONE = lib.GONE;
-Diff.prototype.ANY  = lib.ANY;
 
 
 // Return whether the differences between two documents contains a subset of those specified.
@@ -125,14 +121,25 @@ Diff.prototype.atmost = function() {
       }
 
 
-    if(self.is_asserting)
-      assert.equal(is_match, true, 'Change must match: ' + lib.JS(key)
-                                   + ' -> ' + lib.JS({'from':self.changes[key].from, 'to':self.changes[key].to}));
-    else if(!is_match)
-      return false; // Change matched no rules.
+    if(!is_match)
+      return false;
   }
 
   return true;
+}
+
+Diff.prototype.assert = {};
+
+Diff.prototype.assert.atmost = function() {
+  var self = this;
+
+  var result = self.atmost.apply(self, arguments);
+  assert.equal(is_match, true, 'Change must match: ' + lib.JS(key)
+                               + ' -> ' + lib.JS({'from':self.changes[key].from, 'to':self.changes[key].to}));
+}
+
+Diff.prototype.assert.atleast = function() {
+  throw new Error('Not implemented');
 }
 
 function xdoc_diff_atmost(from, to, allowed, strict) {
