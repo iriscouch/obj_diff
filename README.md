@@ -50,11 +50,11 @@ function good_weapon(weapon) {
 diff.atleast("weapon", diff.ANY, good_weapon);
 
 // Specify multiple changes in one array.
-diff.atleast([ "some_key", "old_value", "new_value"
-             , "options.production.log.level", "debug", "info"
-             , "name", diff.ANY, /^S/
-             , "weapon", diff.ANY, good_weapon
-             ]);
+diff.atleast("some_key", "old_value", "new_value"
+             "options.production.log.level", "debug", "info"
+             "name", diff.ANY, /^S/
+             "weapon", diff.ANY, good_weapon
+            );
 ```
 
 ### atmost(): Confirm approved changes
@@ -63,7 +63,7 @@ atmost() returns `true` if *every change matches a rule*, and `false` otherwise.
 
 ```javascript
 // Often, you specify multiple rules in a list.
-diff.atmost([
+diff.atmost(
 
   // Changing my weapon is fine.
   "weapon", diff.ANY, good_weapon,
@@ -77,7 +77,7 @@ diff.atmost([
   // Middle must be just an initial.
   "name.middle", diff.ANY, /^\w$/
 
-]);
+);
 ```
 
 <a name="couchdb"></a>
