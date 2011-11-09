@@ -28,9 +28,9 @@ var modified = { hello:"everybody", extra:{"nice":"to see you"} };
 var diff = obj_diff(original, modified);
 ```
 
-### atleast(): Check for mandatory changes
+### atleast(): Confirm mandatory changes
 
-*atleast* returns `true` or `false` if the specified changes (and possibly more) happened.
+atleast() returns `true` if *every rule matches a change*, and `false` otherwise.
 
 ```javascript
 // Just give a key name, old value, new value
@@ -57,9 +57,9 @@ diff.atleast([ "some_key", "old_value", "new_value"
              ]);
 ```
 
-### atmost(): Check for approved changes
+### atmost(): Confirm approved changes
 
-*atmost* returns `true` or `false` if the specified changes (and possibly fewer) happened.
+atmost() returns `true` if *every change matches a rule*, and `false` otherwise.
 
 ```javascript
 // Often, you specify multiple rules in a list.
@@ -83,20 +83,7 @@ diff.atmost([
 <a name="couchdb"></a>
 ## Example: CouchDB validation
 
-Combining `atleast()` and `atmost()` makes an excellent sieve to sift out good and bad changes.
-
-Use `atleast()` to enforce *required* changes, and `atmost()` to identify every *allowed* change. They work like this:
-
-* `atleast()` runs through every **rule**
-  1. If the rule does not match a corresponding change, **fail**
-  2. Changes not mentioned by any rules are ignored.
-  3. Otherwise, **pass**
-* `atmost()` runs through every **change**
-  1. If the change does not match any specified rule, **fail**
-  2. Rules not matching any changes are ignored.
-  3. Otherwise, **pass**
-
-Thus, they can be combined into a powerful, *declarative* validation function.
+Combining `atleast()` and `atmost()` makes an excellent sieve to sift out good and bad changes. Use `atleast()` to confirm *required* changes, and `atmost()` to confirm *allowed* changes.
 
 ## Design Objectives
 
