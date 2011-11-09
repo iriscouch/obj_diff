@@ -71,7 +71,7 @@ function defaultable(real_module, initial_defs, definer) {
       definer(faux_module, faux_exports, final_defs, require);
 
       var api = faux_module.exports;
-      if('defaults' in api)
+      if(('defaults' in api) && !api.defaults._defaultable)
         throw new Error('defaultable modules may not export a label called "defaults"');
       else
         api.defaults = make_defaulter(final_defs);
