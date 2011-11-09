@@ -15,32 +15,129 @@
 //    limitations under the License.
 
 var test = require('tap').test
+  , util = require('util')
   , obj_diff = require('../api')
   ;
 
-var JS = JSON.stringify
-  , JP = JSON.parse
-  , JDUP = function(x) { return JSON.parse(JSON.stringify(x)) }
-  ;
+function make_testers(method, t) {
+  return { 'pass': tester(true)
+         , 'fail': tester(false)
+         };
 
-var fixtures = {
-  server: {
-    _id: 'Server/foo'
-  , _rev: '1-blah'
-  , state: 'running' },
+  function tester(expected) {
+    return function(message, a, b) {
+      var policy = Array.prototype.slice.call(arguments, 3);
 
-  transfer: {
-    _id: 'Server/foo'
-  , _rev: '1-blah'
-  , state: 'transfer'
-  , transfer: {"to":"Manager/somebody"}
+      var diff, result;
+      message = [ message
+                , JSON.stringify(a)
+                , ' -> '
+                , JSON.stringify(b)
+                , "policy=" + util.inspect(policy)
+                ].join(' ');
+
+      diff = obj_diff(a, b);
+      result = diff[method].apply(diff, policy);
+      t.equal(result, expected, message);
+
+      diff = obj_diff(a, b, {assert:true});
+      function go() { diff[method].apply(diff, policy) }
+      if(expected)
+        t.doesNotThrow(go, 'No throw: ' + message)
+      else
+        t.throws(go, 'Throws: ' + message);
+    }
   }
 }
 
-function make_tester(t) {
-  return tester;
+test('Utility functions', function(t) {
+  var a = server();
+  var b = server();
 
-  function tester(method, from_id, to_id, policy, expected) {
+  t.same(a, b, 'Server generator makes congruent objects');
+  t.isNot(a, b, 'Server generator makes unique objects');
+
+  t.end();
+})
+
+test('At most', function(t) {
+  var testers = make_testers('atmost', t)
+    , pass = testers.pass
+    , fail = testers.fail
+    ;
+
+  pass('No change, no policy', server(), server())
+  pass('No change, unused policy', server(), server(), 'some_key', 'oldval', 'newval')
+
+  fail('Unexpected delete', server({reboot:true}), server())
+  fail('Unexpected add'   , server(), server({reboot:true}))
+  fail('Unrelated rule', server({reboot:true}), server(), 'unrelated', ANY, ANY)
+
+  pass('Match any/any rule', server({reboot:true}), server(), 'reboot', ANY, ANY)
+  pass('Match hit/any rule', server({reboot:true}), server(), 'reboot', true, ANY)
+  pass('Match hit/hit rule', server({reboot:true}), server(), 'reboot', true, ['gone'])
+
+  fail('"true" is not true', server({reboot:true}), server(), 'reboot', 'true', ANY)
+  
+  fail('Null is not undefined', server({reboot:true}), server({reboot:null}), 'reboot', true, 
+
+  //go({base:'server', reboot:true}, 'server', {reboot:{}}, true);
+  //go({base:'server', reboot:true}, 'server', {reboot:{from:"won't match"}}, false);
+  //go({base:'server', reboot:true}, 'server', {reboot:{to:"won't match"}}, false);
+  //go({base:'server', reboot:true}, 'server', {reboot:{}}, true);
+  //go({base:'server', reboot:true}, 'server', {reboot:{from:true}}, true);
+  //go({base:'server', reboot:true}, 'server', {reboot:{to:undefined}}, true);
+  //go({base:'server', reboot:true}, 'server', {reboot:{from:true, to:undefined}}, true);
+  //go({base:'server', reboot:true}, 'server', {reboot:{from:666}}, false);
+  //go({base:'server', reboot:true}, 'server', {reboot:{to:null}}, false);
+  //go({base:'server', reboot:true}, 'server', {reboot:{from:'badfrom',to:'badto'}}, false);
+
+  // Adding and removing arrays.
+  //go('server', {base:'server', ar:['hi']}, {}, false);
+  //go('server', {base:'server', ar:['hi']}, {ar:{to:Array}}, true);
+  //go({base:'server', ar:['yo']}, 'server', {ar:{from:Array}}, true);
+
+  // Deleting keys.
+  //go('server', {base:'server', state:undefined}, {}, false);
+  //go('server', {base:'server', state:undefined}, {state:{}}, true);
+  //go('server', {base:'server', state:undefined}, {state:{to:undefined}}, true);
+  //go('server', {base:'server', state:undefined}, {state:{to:/.*/}}, false);
+
+  // Deeper changes
+  //go('transfer', 'transfer', {}, true);
+  //go('transfer', {base:'transfer'}, {transfer:{to:{}}}, true);
+  //go('transfer', {base:'transfer', transfer:{to:null}}, {transfer:{nest:true, to:{}}}, true);
+
+  t.end();
+})
+
+if(0)
+test('At least', function(t) {
+  var go = make_tester('atleast', t);
+
+  go('server', 'server', {}, true);
+  go('server', 'server', {change: {}}, false);
+  go('server', {base:'server', jason:'cool'}, {}, true);
+  go('server', {base:'server', jason:'cool'}, {jason: {}}, true);
+  go({base:'server', jason:'cool'}, 'server', {jason: {}}, true);
+  go('server', {base:'server', jason:'cool'}, {jason: {to:'not cool'}}, false);
+  go('server', {base:'server', jason:'cool'}, {jason: {from:undefined, to:/.*/}}, true);
+
+  // Deeper change
+  go('transfer', 'transfer', {}, true);
+  go('transfer', {base:'transfer', transfer:{to:null}}, {transfer:{to:{}, nest:1}}, true);
+  go('transfer', {base:'transfer', transfer:{to:23}}, {transfer:{nest:true, to:{}}}, true);
+  go('transfer', {base:'transfer', transfer:{to:null}}, {transfer:{nest:true, to:{}}}, true);
+
+  t.throws(function() {
+    go({base:'server', reboot:false}, 'server', {reboot:{from:undefined, to:undefined}}, true);
+  }, 'Undefined from and to')
+
+  t.end();
+})
+
+function xxmake_tester(method, t) {
+  return function(from_id, to_id, policy, expected) {
     var from_merge = {}, to_merge = {};
 
     if(typeof from_id == 'object') {
@@ -72,73 +169,43 @@ function make_tester(t) {
         to[k] = to_merge[k];
     }
 
-    method = method.replace(/^doc_diff_/, "");
     var result = obj_diff[method](from, to, policy);
-    var message = "from="+JS(from) + " to="+JS(to) + " policy="+JS(policy);
+    var message = [ "from="   + JSON.stringify(from)
+                  , "to="     + JSON.stringify(to)
+                  , "policy=" + JSON.stringify(policy)
+                  ].join(' ');
 
     return t.same(result, expected, message);
   }
 
 }
 
-test('At most', function(t) {
-  var go = make_tester(t);
+//
+// Utilities
+//
 
-  go('doc_diff_atmost', 'server', 'server', {}, true);
-  go('doc_diff_atmost', 'server', 'server', {}, true);
-  go('doc_diff_atmost', 'server', 'server', {change: {}}, true);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {}, false);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {unrelated:{}}, false);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{}}, true);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{from:"won't match"}}, false);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{to:"won't match"}}, false);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{}}, true);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{from:true}}, true);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{to:undefined}}, true);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{from:true, to:undefined}}, true);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{from:666}}, false);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{to:null}}, false);
-  go('doc_diff_atmost', {base:'server', reboot:true}, 'server', {reboot:{from:'badfrom',to:'badto'}}, false);
+function add(extra, obj) {
+  extra = extra || {};
+  for (var k in extra)
+    obj[k] = extra[k];
+  return obj;
+}
 
-  // Adding and removing arrays.
-  go('doc_diff_atmost', 'server', {base:'server', ar:['hi']}, {}, false);
-  go('doc_diff_atmost', 'server', {base:'server', ar:['hi']}, {ar:{to:Array}}, true);
-  go('doc_diff_atmost', {base:'server', ar:['yo']}, 'server', {ar:{from:Array}}, true);
+function server(extra) {
+  return add(extra, { _id: 'Server/foo'
+                    , _rev: '1-blah'
+                    , state: 'running'
+                    });
+}
 
-  // Deleting keys.
-  go('doc_diff_atmost', 'server', {base:'server', state:undefined}, {}, false);
-  go('doc_diff_atmost', 'server', {base:'server', state:undefined}, {state:{}}, true);
-  go('doc_diff_atmost', 'server', {base:'server', state:undefined}, {state:{to:undefined}}, true);
-  go('doc_diff_atmost', 'server', {base:'server', state:undefined}, {state:{to:/.*/}}, false);
+function transfer(extra) {
+  return add(extra, { _id: 'Server/foo'
+                    , _rev: '1-blah'
+                    , state: 'transfer'
+                    , transfer: {"to":"Manager/somebody"}
+                    });
+}
 
-  // Deeper changes
-  go('doc_diff_atmost', 'transfer', 'transfer', {}, true);
-  go('doc_diff_atmost', 'transfer', {base:'transfer'}, {transfer:{to:{}}}, true);
-  go('doc_diff_atmost', 'transfer', {base:'transfer', transfer:{to:null}}, {transfer:{nest:true, to:{}}}, true);
-
-  t.end();
-})
-
-test('At least', function(t) {
-  var go = make_tester(t);
-
-  go('doc_diff_atleast', 'server', 'server', {}, true);
-  go('doc_diff_atleast', 'server', 'server', {change: {}}, false);
-  go('doc_diff_atleast', 'server', {base:'server', jason:'cool'}, {}, true);
-  go('doc_diff_atleast', 'server', {base:'server', jason:'cool'}, {jason: {}}, true);
-  go('doc_diff_atleast', {base:'server', jason:'cool'}, 'server', {jason: {}}, true);
-  go('doc_diff_atleast', 'server', {base:'server', jason:'cool'}, {jason: {to:'not cool'}}, false);
-  go('doc_diff_atleast', 'server', {base:'server', jason:'cool'}, {jason: {from:undefined, to:/.*/}}, true);
-
-  // Deeper change
-  go('doc_diff_atleast', 'transfer', 'transfer', {}, true);
-  go('doc_diff_atleast', 'transfer', {base:'transfer', transfer:{to:null}}, {transfer:{to:{}, nest:1}}, true);
-  go('doc_diff_atleast', 'transfer', {base:'transfer', transfer:{to:23}}, {transfer:{nest:true, to:{}}}, true);
-  go('doc_diff_atleast', 'transfer', {base:'transfer', transfer:{to:null}}, {transfer:{nest:true, to:{}}}, true);
-
-  t.throws(function() {
-    go('doc_diff_atmost', {base:'server', reboot:false}, 'server', {reboot:{from:undefined, to:undefined}}, true);
-  }, 'Undefined from and to')
-
-  t.end();
-})
+function ANY() {
+  return true;
+}

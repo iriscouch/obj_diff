@@ -32,6 +32,21 @@ function make_tester(t) {
   }
 }
 
+test('Validation', function(t) {
+  var bad = [ true, false, 'true', 'false', -1.5, -1, 0, 1, 1.5, undefined, null
+            , ['array'], [{}, {}], Array, Object, function(x) { return x*x }
+            ]
+
+  bad.forEach(function(non_object) {
+    t.throws(function() { obj_diff(non_object, non_object) }, 'Two non-objects')
+    t.throws(function() { obj_diff(non_object, {}        ) }, 'First non-object')
+    t.throws(function() { obj_diff({}        , non_object) }, 'Second non-object')
+  })
+
+  t.end();
+})
+
+if(0)
 test('Diff objects', function(t) {
   var go = make_tester(t);
 
@@ -47,6 +62,7 @@ test('Diff objects', function(t) {
   t.end();
 })
 
+if(0)
 test('README examples', function(t) {
   var go = make_tester(t);
 
