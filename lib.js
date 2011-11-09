@@ -18,6 +18,7 @@ require('defaultable')(module,
 
 
 module.exports = { 'encode'  : encode
+                 , 'decode'  : decode
                  , 'typeOf'  : typeOf
                  , 'is_equal': is_equal
 
@@ -47,10 +48,10 @@ function encode(obj) {
     return obj;
 
   else if(type === 'array') {
-    result = [];
-    for(a = 0; a < obj.length; a++)
-      result[a] = encode(obj[a]);
-    return result;
+    if(obj.length === 1 && obj[0] === 'gone')
+      return ['gone'];
+    else
+      return ['array', obj.map(encode)];
   }
 
   else if(type === 'object') {
@@ -62,6 +63,37 @@ function encode(obj) {
   }
 
   throw new Error('Unknown type: ' + type);
+}
+
+function decode(obj) {
+  var type = typeOf(obj);
+
+  if(type !== 'array')
+    return obj;
+
+  type = obj[0];
+  obj = obj.slice(1);
+
+  if(type === 'array')
+    return obj;
+
+  else if(type === 'undefined')
+    return undefined;
+
+  else if(type === 'gone')
+    return ['gone'];
+  else if(type === 'any')
+    return ['any'];
+
+  else if(type === 'String')
+    return String;
+  else if(type === 'Number')
+    return Number;
+  else if(type === 'Boolean')
+    return Boolean;
+
+  throw new Error('Unknown object to decode: ' + require('util').inspect(obj));
+  throw new Error('Unknown object to decode: ' + JSON.stringify(obj));
 }
 
 

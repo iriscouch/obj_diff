@@ -20,9 +20,8 @@ var test = require('tap').test
   , rules = require('../rules')
   ;
 
-function boom() { throw new Error('This should never be called, it is to be replaced by testing code') }
-function ANY () { boom() }
-function GONE() { boom() }
+var ANY = obj_diff.ANY;
+var GONE = obj_diff.GONE;
 
 test('Type matching', function(t) {
   var pass = tester(t, true);
@@ -128,18 +127,15 @@ function tester(t, expected) {
   return function(message, from, to, key, oldval, newval) {
     var diff = obj_diff(from, to);
 
+    // Round-trip through JSON to make sure it's JSON-storable.
+    diff = JSON.parse(JSON.stringify(diff));
+
     var changed_keys = Object.keys(diff.changes);
     t.equal(changed_keys.length, 1, 'Rule tests should have only one change');
 
     var change_key  = changed_keys[0];
     var change_from = diff.changes[change_key].from;
     var change_to   = diff.changes[change_key].to;
-
-    if(oldval === ANY)  oldval = diff.ANY;
-    if(oldval === GONE) oldval = diff.GONE;
-
-    if(newval === ANY)  newval = diff.ANY;
-    if(newval === GONE) newval = diff.GONE;
 
     var rule = new rules.Rule(key, oldval, newval);
     var result = rule.match(change_key, change_from, change_to);

@@ -32,21 +32,23 @@ function Rule (key, from, to) {
     throw new Error('Invalid rules parameters: ' + JSON.stringify([key, from, to]));
 
   self.key  = key;
-  self.from = from;
-  self.to   = to;
+  self.from = lib.decode(from);
+  self.to   = lib.decode(to);
 }
 
 
 Rule.prototype.match = function(key, from, to) {
   var self = this;
 
-  console.error('Match ' + require('util').inspect({rule:[self.key, self.from, self.to], change:[key, from, to]}));
+  console.error('Match ' + require('util').inspect({rule:[self.key, self.from, self.to], change:[key, from, to]}, false, 5));
   return self.key === key && element_match(self.from, from) && element_match(self.to, to);
 }
 
 
 function element_match(guide, element) {
-  console.error('element match: ' + require('util').inspect({guide:guide, element:element}))
+  element = lib.decode(element);
+
+  console.error('element match: ' + require('util').inspect({guide:guide, element:element}, false, 5))
   var type = lib.typeOf(element);
 
   if(guide === Boolean && type === 'boolean' ||
@@ -56,8 +58,13 @@ function element_match(guide, element) {
      guide === Number && type === 'number')
     return true;
 
-  if(lib.typeOf(guide) === 'array') {
-    if(guide[0] === 'any')
+  else if(lib.typeOf(guide) === 'array') {
+    guide = guide[0];
+
+    if(guide === 'any')
+      return true;
+
+    else if(guide === 'gone' && lib.typeOf(element) === 'array' && element[0] === 'gone')
       return true;
   }
 
