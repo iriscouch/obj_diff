@@ -1,11 +1,10 @@
-# Identify and assert required and allowed differences betwen objects
+# Identify and assert differences betwen objects
 
-obj_diff is a simple utility to ascertain and assert the differences between Javascript and JSON objects. It is useful for
+obj_diff is for clearly and reliably seeing and asserting differences between Javascript and JSON objects. Use it to **see how data has changed** and to **decide whether that change is good or bad**. Thus obj_diff is useful for security and validation.
 
-1. Seeing how an object has changed
-2. Deciding whether that change is good or bad.
+obj_diff comes from an internal [Iris Couch][ic] application used in production for two years. It works in the browser, in CouchDB, and as an NPM module.
 
-Thus obj_diff is very useful for security and validation.
+    npm install obj_diff
 
 ## Is it any good?
 
@@ -13,84 +12,210 @@ Yes.
 
 ## Usage
 
-obj_diff is available as an NPM package.
-
-    npm install obj_diff
-
-The API is pretty simple:
+Just diff two objects, then use helper functions to see what's changed.
 
 ```javascript
 var obj_diff = require("obj_diff");
 
-var original = { hello:"world" };
-var modified = { hello:"everybody", extra:{"nice":"to see you"} };
+var original = { hello:"world"     , note: {"nice":"shoes"} };
+var modified = { hello:"underworld", note: {"nice":"hat"  } };
 
 var diff = obj_diff(original, modified);
+
+// Mandatory changes
+if(diff.atleast("hello", "world", "underworld")) // Passes
+  console.log("That's kind of dark, isn't it");
+else
+  console.log("At least you aren't obsessed with the underworld");
+
+// Approved changes
+if(diff.atmost("hello.note.nice", "shoes", "hat")) // Fails (due to .hello change)
+  console.log("Thanks! It's a nice hat, isn't it?");
+else
+  console.log("You talk too much");
 ```
 
-### atleast(): Confirm mandatory changes
+## Design
 
-atleast() returns `true` if *every rule matches a change*, and `false` otherwise.
+To work well with databases, obj_diff has these design goals:
+
+* **Declarative**. Data validation is crucial. It must be correct. Validation rules must be easy to express clearly and easy to reason about.
+* **JSON compatible**. Diffs and validation rules (containing regexes, functions, etc.) can be encoded and decoded as JSON, without losing functionality. You can store changes and validation policies as plain JSON.
+
+### Mandatory changes: atleast()
+
+atleast() returns `true` if **every rule matches** a change, and `false` otherwise.
 
 ```javascript
-// Just give a key name, old value, new value
+// Give a key name, an expected old value, and expected new value.
 diff.atleast("some_key", "old_value", "new_value");
 
-// For nested objects, just type them out in the string.
+// Nested objects: just type them out in the string.
 diff.atleast("options.production.log.level", "debug", "info");
 
-// Use regular expressions to check strings. E.g, name must start with "S"
-diff.atleast("name", diff.ANY, /^S/);
+// Regular expressions, e.g. first letter must change from "J" to "S".
+diff.atleast("name", /^J/, /^S/);
 
-// Use function callbacks (predicates) to check values arbitrarily.
+// ANY matches any value.
+diff.atleast("state", obj_diff.ANY, "run"); // State must become "run".
+diff.atleast("owner", null, obj_diff.ANY);  // Owner must become non-null.
+
+// GONE implies a missing value.
+diff.atleast("error", "locked", obj_diff.GONE); // Error must be deleted.
+diff.atleast("child", obj_diff.GONE, "Bob");    // Child must be created.
+
+// FALSY matches false, null, undefined, the empty string, 0, and NaN.
+diff.atleast("is_new", obj_diff.ANY, obj_diff.FALSY);
+
+// "TRUTHY" matches anything not falsy.
+diff.atleast("changed", obj_diff.GONE, obj_diff.TRUTHY);
+
+// Javascript types
+diff.atleast("ratio"  , undefined    , Number ); // Numeric ratio, note undefined is not GONE
+diff.atleast("age"    , obj_diff.ANY , Number ); // Age must change to something numeric.
+diff.atleast("name"   , obj_diff.GONE, String ); // Must create a name string.
+diff.atleast("deleted", obj_diff.ANY , Boolean); // Deleted flag must be true/false.
+diff.atleast("config" , obj_diff.GONE, Object ); // Must create a config object.
+diff.atleast("backups", null         , Array  ); // Null backups must become an array.
+
+// TIMESTAMP matches ISO-8601 strings, i.e. what JSON.stringify(new Date) makes.
+diff.atleast("created_at", GONE, TIMESTAMP); // e.g. "2011-11-10T04:21:45.046Z"
+
+// GREATER and LESSER compare a value to its counterpart.
+diff.atleast("age", Number, GREATER); // Age must increase in number
+diff.atleast("age", LESSER, Number);  // (same as the previous test)
+
+diff.atleast("weight"   , GREATER, LESSER ); // Mandatory weight loss
+diff.atleast("happiness", LESSER , GREATER); // Mandatory improved mood
+
+diff.atleast("WRONG", GREATER, GREATER); // This always fails.
+diff.atleast("WRONG", LESSER , LESSER ); // This always fails.
+
+// Use functions (predicates) for arbitrary data validation
 function good_weapon(weapon) {
   return weapon != process.env.bad_weapon;
 }
 
-diff.atleast("weapon", diff.ANY, good_weapon);
+diff.atleast("weapon", obj_diff.ANY, good_weapon);
 
-// Specify multiple changes in one array.
-diff.atleast("some_key", "old_value", "new_value"
-             "options.production.log.level", "debug", "info"
-             "name", diff.ANY, /^S/
-             "weapon", diff.ANY, good_weapon
-            );
+// Specify multiple rules simultaneously.
+diff.atleast(
+  "some_key"                    , "old_value" , "new_value"
+  "options.production.log.level", "debug"     , "info"
+  "name"                        , obj_diff.ANY, /^S/
+  "weapon"                      , obj_diff.ANY, good_weapon
+);
+
+// Or as an assertion
+try {
+  diff.assert.atleast(
+    "some_key"                    , "old_value" , "new_value"
+    "options.production.log.level", "debug"     , "info"
+    "name"                        , obj_diff.ANY, /^S/
+    "weapon"                      , obj_diff.ANY, good_weapon
+  );
+} catch (er) {
+  console.error("Change required: " + er);
+}
 ```
 
-### atmost(): Confirm approved changes
+### Allowed changes: atmost()
 
-atmost() returns `true` if *every change matches a rule*, and `false` otherwise.
+atmost() returns `true` if **every change matches** a rule, and `false` otherwise.
 
 ```javascript
 // Often, you specify multiple rules in a list.
 diff.atmost(
-
   // Changing my weapon is fine.
-  "weapon", diff.ANY, good_weapon,
+  "weapon", obj_diff.ANY, good_weapon,
 
   // Changing my first name to something readable is fine.
-  "name.first", diff.ANY, /^\w+$/,
+  "name.first", obj_diff.ANY, /^\w+$/,
 
   // People named "Smith" may change their last name.
   "name.last", "Smith", /^\w+$/,
 
   // Middle must be just an initial.
-  "name.middle", diff.ANY, /^\w$/
-
+  "name.middle", obj_diff.ANY, /^\w$/
 );
+
+// Or as an assertion.
+try {
+  diff.assert.atmost(
+    "weapon"     , obj_diff.ANY, good_weapon,
+    "name.first" , obj_diff.ANY, /^\w+$/,
+    "name.last"  , "Smith"     , /^\w+$/,
+    "name.middle", obj_diff.ANY, /^\w$/
+  );
+} catch (er) {
+  console.error("Sorry, disallowed change: " + er);
+}
+```
+
+A useful trick with *atmost()* is to assert no changes.
+
+```javascript
+try {
+  diff2.assert.atmost();   // No rules given, i.e. "zero changes, at most"
+  diff2.assert.nochange(); // Same as atmost() but more readable.
+} catch (er) {
+  console.error("Sorry, no changes allowed");
+}
 ```
 
 <a name="couchdb"></a>
-## Example: CouchDB validation
+## CouchDB validation
 
-Combining `atleast()` and `atmost()` makes an excellent sieve to sift out good and bad changes. Use `atleast()` to confirm *required* changes, and `atmost()` to confirm *allowed* changes.
+obj_diff excels (and was designed for) [Apache CouchDB][couchdb] `validate_doc_update()` functions. Combine *atleast()* and *atmost()* to make a sieve and sift out good and bad changes. obj_diff cannot replace all validation code, but it augments it well.
 
-## Design Objectives
+* *atleast()* confirms **required** changes.
+* *atmost()* confirms **allowed** changes.
 
-To be useful in databases and database applications, obj_diff has a few design goals:
+First of all, CouchDB changes document metadata under the hood, and you don't want that triggering false alarms. So the first thing is to set obj_diff's [defaults][def] for CouchDB mode, which modifies *atmost()* to allow normal document changes:
 
-* **Declarative assertion**. Input validation has important correctness and security implications. It must be easy to understand and to express clearly and correctly which changes are allowed.
-* **JSON compatible**. Regular expressions and function callbacks are useful as validation rules. obj_diff ensures that these survive a round-trip through JSON encoding.
+1. `null` is treated as an empty object, `{}`. This always works: `doc_diff(oldDoc, newDoc)`
+2. The String `._rev` may change.
+3. The Array `._revisions.ids` may change.
+4. *assert.atleast()* and *assert.atmost()* throw `{"forbidden": <reason>}` objects that Couch likes.
+
+Thus, this is your typical `validate_doc_update` function:
+
+```javascript
+function(newDoc, oldDoc, userCtx, secObj) {
+  var doc_diff = require("obj_diff").defaults({"couchdb":true}) // Relaxed diff.
+    , ANY      = doc_diff.ANY
+    , GONE     = doc_diff.GONE
+    ;
+
+  var diff = doc_diff(oldDoc, newDoc);
+  // Start validating!
+}
+```
+
+### Valid data vs. valid changes
+
+obj_diff validates *changes*, not *data*. What happens if you GET a document and PUT it back unmodified? There will be zero changes in the diff. Any *atleast()* checks will necessarily fail. Therefore, the best practice is to check the data and then apply certain policies based on that.
+
+Of course, sometimes you *want* changes in every update, such as timestamp validation:
+
+```javascript
+if(!oldDoc)
+  // Creation, require the timestamp fields.
+  diff.assert.atleast(
+    'created_at', 'timestamp required', GONE, TIMESTAMP,
+    'updated_at', 'timestamp required', GONE, newDoc.created_at // Must match created_at
+  );
+else
+  // Update, exact() will reject changes to .created_at (and all other fields)
+  diff.assert.exactly(
+    'updated_at', 'Must be a timestamp'  , TIMESTAMP, TIMESTAMP,
+    'updated_at', 'Must be later in time', TIMESTAMP, GREATER
+  );
+```
+
+### Example: User Documents
+
+
 
 ## JSON Support
 
@@ -121,38 +246,19 @@ console.log("Rules: " + JSON.stringify(rules));
 
 Note, functions are stored using their source code, so be careful about global or closed variables they depend on.
 
-## Minor things
+## Development
 
-Diffs can throw assertion errors instead of returning `false` for policy failures.
+obj_diff uses [node-tap][tap] unit tests. Install it globally (`npm -g install node-tap`) and run `tap t`. Or for a more robust local install:
 
-```javascript
-try {
-  diff1.assert.atleast("updated_at", String, String);
-} catch (er) {
-  console.error("You didn't update the timestamp");
-}
+    $ npm install --dev
+    tap@0.0.10 ./node_modules/tap
+    └── tap-runner@0.0.7
 
-try {
-  diff2.assert.atmost();
-} catch (er) {
-  console.error("Sorry, no changes allowed");
-}
-```
+    $ ./node_modules/.bin/tap t
+    ok rules.js ..................... 110/110
+    total ........................... 111/111
 
-obj_diff is a [defaultable][def] API. You can pass an options object to `obj_diff()`, or set it permanently with `.defaults()`.
-
-* **revisions**: If true, `atmost()` allows normal changes to `._revisions` made by CouchDB. Default is `true`.
-
-```javascript
-var obj_diff = require("obj_diff");
-var sct_diff = obj_diff.defaults({"revisions":false}); // Strict
-
-var diff;
-
-// These are the same.
-diff = obj_diff(oldObj, newObj, {revisions:false});
-diff = sct_diff(oldObj, newObj);
-```
+    ok
 
 Finally, you can use the diff object yourself. Here's what it looks like:
 
@@ -171,4 +277,11 @@ Finally, you can use the diff object yourself. Here's what it looks like:
     ...        {name:"Joe", contact: {email:"doe@example.com", cell:"555-1212"}})
     { contact: { cell: { from: null, to: '555-1212' } } }
 
+## License
+
+obj_diff is licensed under the Apache License, version 2.0
+
 [def]: https://github.com/iriscouch/defaultable
+[ic]: http://www.iriscouch.com/
+[couchdb]: http://couchdb.apache.org/
+[tap]: https://github.com/isaacs/node-tap
