@@ -43,7 +43,7 @@ test('Aliases', function(t) {
     fail('FALSY does not match (to) '  +repr, hasnt, has, 'val', 1, FALSY)
   })
 
-  var falsies = [0, "", null, false, undefined];
+  var falsies = [0, "", null, false, undefined, NaN];
   falsies.forEach(function(val) {
     var has   = {'val':val};
     var hasnt = {'val':1};
