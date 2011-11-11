@@ -141,6 +141,10 @@ test('Rule matching', function(t) {
   fail('"false" is not false', {}, {happy:false}, 'happy', ANY, 'false')
   fail('0 is not false'      , {}, {happy:false}, 'happy', ANY, 0)
 
+  pass('Regex match', {}, {yes:'Hello, world'}, 'yes', ANY, /world$/)
+  fail('Regex miss' , {no:'Hello, world'}, {}, 'no', /nope/, ANY)
+  pass('Regex case insensitive', {i:'Bye World'}, {i:'HELLO WORLD'}, 'i', /^BYE/i, /^HELLO/i)
+
   t.end()
 })
 
