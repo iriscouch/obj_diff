@@ -1,6 +1,6 @@
 # Identify and assert differences betwen objects
 
-obj_diff is for clearly and reliably seeing and asserting differences between Javascript and JSON objects. Use it to **see how data has changed** and to **decide whether that change is good or bad**. Thus obj_diff is useful for security and validation.
+obj_diff is for examining changes between Javascript and JSON objects. Use it to **see how data has changed** and to **decide whether that change is good or bad**. Thus obj_diff is useful for security and validation.
 
 obj_diff comes from an internal [Iris Couch][ic] application used in production for two years. It works in the browser, in CouchDB, and as an NPM module.
 
@@ -12,7 +12,7 @@ Yes.
 
 ## Usage
 
-Just diff two objects, then use helper functions to see what's changed.
+Diff two objects. Then use helper functions to see what's changed.
 
 ```javascript
 var obj_diff = require("obj_diff");
@@ -23,16 +23,18 @@ var modified = { hello:"underworld", note: {"nice":"hat"  } };
 var diff = obj_diff(original, modified);
 
 // Mandatory changes
-if(diff.atleast("hello", "world", "underworld")) // Passes
-  console.log("That's kind of dark, isn't it");
-else
-  console.log("At least you aren't obsessed with the underworld");
+if(diff.atleast("hello", "world", "underworld"))    // true
+  console.log("That's kind of dark");
+
 
 // Approved changes
-if(diff.atmost("hello.note.nice", "shoes", "hat")) // Fails (due to .hello change)
-  console.log("Thanks! It's a nice hat, isn't it?");
-else
-  console.log("You talk too much");
+if(diff.atmost("hello", "world", "underworld"))     // false (.hello.note.nice also changed)
+  console.log("That's kind of dark");
+
+
+if(diff.atmost("hello"          , "world", /world/, // true
+               "hello.note.nice", "shoes", String))
+  console.log("Hooray!");
 ```
 
 ## Design
@@ -42,7 +44,7 @@ To work well with databases, obj_diff has these design goals:
 * **Declarative**. Data validation is crucial. It must be correct. Validation rules must be easy to express clearly and easy to reason about.
 * **JSON compatible**. Diffs and validation rules (containing regexes, functions, etc.) can be encoded and decoded as JSON, without losing functionality. You can store changes and validation policies as plain JSON.
 
-### Mandatory changes: atleast()
+## Mandatory changes: atleast()
 
 atleast() returns `true` if **every rule matches** a change, and `false` otherwise.
 
@@ -50,81 +52,76 @@ atleast() returns `true` if **every rule matches** a change, and `false` otherwi
 // Give a key name, an expected old value, and expected new value.
 diff.atleast("some_key", "old_value", "new_value");
 
-// Nested objects: just type them out in the string.
-diff.atleast("options.production.log.level", "debug", "info");
-
-// Regular expressions, e.g. first letter must change from "J" to "S".
-diff.atleast("name", /^J/, /^S/);
-
-// ANY matches any value.
-diff.atleast("state", obj_diff.ANY, "run"); // State must become "run".
-diff.atleast("owner", null, obj_diff.ANY);  // Owner must become non-null.
-
-// GONE implies a missing value.
-diff.atleast("error", "locked", obj_diff.GONE); // Error must be deleted.
-diff.atleast("child", obj_diff.GONE, "Bob");    // Child must be created.
-
-// FALSY matches false, null, undefined, the empty string, 0, and NaN.
-diff.atleast("is_new", obj_diff.ANY, obj_diff.FALSY);
-
-// "TRUTHY" matches anything not falsy.
-diff.atleast("changed", obj_diff.GONE, obj_diff.TRUTHY);
-
-// Javascript types
-diff.atleast("ratio"  , undefined    , Number ); // Numeric ratio, note undefined is not GONE
-diff.atleast("age"    , obj_diff.ANY , Number ); // Age must change to something numeric.
-diff.atleast("name"   , obj_diff.GONE, String ); // Must create a name string.
-diff.atleast("deleted", obj_diff.ANY , Boolean); // Deleted flag must be true/false.
-diff.atleast("config" , obj_diff.GONE, Object ); // Must create a config object.
-diff.atleast("backups", null         , Array  ); // Null backups must become an array.
-
-// TIMESTAMP matches ISO-8601 strings, i.e. what JSON.stringify(new Date) makes.
-diff.atleast("created_at", GONE, TIMESTAMP); // e.g. "2011-11-10T04:21:45.046Z"
-
-// GREATER and LESSER compare a value to its counterpart.
-diff.atleast("age", Number, GREATER); // Age must increase in number
-diff.atleast("age", LESSER, Number);  // (same as the previous test)
-
-diff.atleast("weight"   , GREATER, LESSER ); // Mandatory weight loss
-diff.atleast("happiness", LESSER , GREATER); // Mandatory improved mood
-
-diff.atleast("WRONG", GREATER, GREATER); // This always fails.
-diff.atleast("WRONG", LESSER , LESSER ); // This always fails.
-
-// Use functions (predicates) for arbitrary data validation
-function good_weapon(weapon) {
-  return weapon != process.env.bad_weapon;
-}
-
-diff.atleast("weapon", obj_diff.ANY, good_weapon);
-
 // Specify multiple rules simultaneously.
 diff.atleast(
-  "some_key"                    , "old_value" , "new_value"
-  "options.production.log.level", "debug"     , "info"
-  "name"                        , obj_diff.ANY, /^S/
-  "weapon"                      , obj_diff.ANY, good_weapon
+
+  // Nested objects: just type them out in the string.
+  "options.production.log.level", "debug", "info",
+
+  // Regular expressions, e.g. first letter must change from "J" to "S".
+  "name", /^J/, /^S/,
+
+  // ANY matches any value.
+  "state", obj_diff.ANY, "run", // State must become "run".
+  "owner", null, obj_diff.ANY,  // Owner must become non-null.
+
+  // GONE implies a missing value.
+  "error", "locked", obj_diff.GONE, // Error must be deleted.
+  "child", obj_diff.GONE, "Bob",    // Child must be created.
+
+  // FALSY matches false, null, undefined, the empty string, 0, and NaN.
+  "is_new", obj_diff.ANY, obj_diff.FALSY,
+
+  // "TRUTHY" matches anything not falsy.
+  "changed", obj_diff.GONE, obj_diff.TRUTHY,
+
+  // Javascript types
+  "ratio"  , undefined    , Number , // Numeric ratio, note undefined is not GONE
+  "age"    , obj_diff.ANY , Number , // Age must change to something numeric.
+  "name"   , obj_diff.GONE, String , // Must create a name string.
+  "deleted", obj_diff.ANY , Boolean, // Deleted flag must be true/false.
+  "config" , obj_diff.GONE, Object , // Must create a config object.
+  "backups", null         , Array  , // Null backups must become an array.
+
+  // TIMESTAMP matches ISO-8601 strings (what JSON.stringify makes from a Date)
+  "created_at", GONE, TIMESTAMP, // e.g. "2011-11-10T04:21:45.046Z"
+
+  // GREATER and LESSER compare a value to its counterpart.
+  "age", Number, GREATER, // Age must increase in number
+  "age", LESSER, Number,  // (same as the previous test)
+
+  "weight"   , GREATER, LESSER , // Mandatory weight loss
+  "happiness", LESSER , GREATER, // Mandatory improved mood
+
+  "WRONG", GREATER, GREATER, // This always fails.
+  "WRONG", LESSER , LESSER , // This always fails.
+
+  // Use functions (predicates) for arbitrary data validation
+  "weapon", obj_diff.ANY, good_weapon
 );
 
-// Or as an assertion
+// Or as an assertion, with an extra "reason" argument.
 try {
   diff.assert.atleast(
-    "some_key"                    , "old_value" , "new_value"
-    "options.production.log.level", "debug"     , "info"
-    "name"                        , obj_diff.ANY, /^S/
-    "weapon"                      , obj_diff.ANY, good_weapon
+    "some_key          , "must become new new" , "old_value" , "new_value",
+    "options.log.level", "must upgrade to info", "debug"     , "info",
+    "name"             , "must start with 'S'" , obj_diff.ANY, /^S/,
+    "weapon"           , "cannot be sharp"     , obj_diff.ANY, good_weapon
   );
 } catch (er) {
   console.error("Change required: " + er);
 }
+
+function good_weapon(weapon) {
+  return weapon != process.env.sharp_weapon;
+}
 ```
 
-### Allowed changes: atmost()
+## Allowed changes: atmost()
 
 atmost() returns `true` if **every change matches** a rule, and `false` otherwise.
 
 ```javascript
-// Often, you specify multiple rules in a list.
 diff.atmost(
   // Changing my weapon is fine.
   "weapon", obj_diff.ANY, good_weapon,
@@ -142,13 +139,13 @@ diff.atmost(
 // Or as an assertion.
 try {
   diff.assert.atmost(
-    "weapon"     , obj_diff.ANY, good_weapon,
-    "name.first" , obj_diff.ANY, /^\w+$/,
-    "name.last"  , "Smith"     , /^\w+$/,
-    "name.middle", obj_diff.ANY, /^\w$/
+    "weapon"     , "cannot be sharp"       , obj_diff.ANY, good_weapon,
+    "name.first" , "must be readable"      , obj_diff.ANY, /^\w+$/,
+    "name.last"  , "may no longer be Smith", "Smith"     , /^\w+$/,
+    "name.middle", "must be one letter"    , obj_diff.ANY, /^\w$/
   );
 } catch (er) {
-  console.error("Sorry, disallowed change: " + er);
+  console.error("Sorry: " + er);
 }
 ```
 
@@ -215,7 +212,7 @@ else
 
 ### Example: User Documents
 
-
+TODO
 
 ## JSON Support
 
