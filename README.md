@@ -48,8 +48,8 @@ To work well with databases, obj_diff has these design goals:
 
 There is a symbiotic relationship between *atleast* and *atmost*:
 
-* atleast() returns `true` if **every rule matches** a change, and `false` otherwise.
-* atmost() returns `true` if **every change matches** a rule, and `false` otherwise.
+* atleast() returns `true` only if **every rule matches a change**.
+* atmost() returns `true` only if **every change matches a rule**.
 
 ```javascript
 // Give a key name, an expected old value, and expected new value.
