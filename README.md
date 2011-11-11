@@ -44,9 +44,12 @@ To work well with databases, obj_diff has these design goals:
 * **Declarative**. Data validation is crucial. It must be correct. Validation rules must be easy to express clearly and easy to reason about.
 * **JSON compatible**. Diffs and validation rules (containing regexes, functions, etc.) can be encoded and decoded as JSON, without losing functionality. You can store changes and validation policies as plain JSON.
 
-## Mandatory changes: atleast()
+## Mandatory vs. Approved changes
 
-atleast() returns `true` if **every rule matches** a change, and `false` otherwise.
+There is a symbiotic relationship between *atleast* and *atmost*:
+
+* atleast() returns `true` if **every rule matches** a change, and `false` otherwise.
+* atmost() returns `true` if **every change matches** a rule, and `false` otherwise.
 
 ```javascript
 // Give a key name, an expected old value, and expected new value.
@@ -100,28 +103,6 @@ diff.atleast(
   "weapon", obj_diff.ANY, good_weapon
 );
 
-// Or as an assertion, with an extra "reason" argument.
-try {
-  diff.assert.atleast(
-    "some_key          , "must become new new" , "old_value" , "new_value",
-    "options.log.level", "must upgrade to info", "debug"     , "info",
-    "name"             , "must start with 'S'" , obj_diff.ANY, /^S/,
-    "weapon"           , "cannot be sharp"     , obj_diff.ANY, good_weapon
-  );
-} catch (er) {
-  console.error("Change required: " + er);
-}
-
-function good_weapon(weapon) {
-  return weapon != process.env.sharp_weapon;
-}
-```
-
-## Allowed changes: atmost()
-
-atmost() returns `true` if **every change matches** a rule, and `false` otherwise.
-
-```javascript
 diff.atmost(
   // Changing my weapon is fine.
   "weapon", obj_diff.ANY, good_weapon,
@@ -137,6 +118,19 @@ diff.atmost(
 );
 
 // Or as an assertion.
+
+// Or as an assertion, with an extra "reason" argument.
+try {
+  diff.assert.atleast(
+    "some_key          , "must become new new" , "old_value" , "new_value",
+    "options.log.level", "must upgrade to info", "debug"     , "info",
+    "name"             , "must start with 'S'" , obj_diff.ANY, /^S/,
+    "weapon"           , "cannot be sharp"     , obj_diff.ANY, good_weapon
+  );
+} catch (er) {
+  console.error("Change required: " + er);
+}
+
 try {
   diff.assert.atmost(
     "weapon"     , "cannot be sharp"       , obj_diff.ANY, good_weapon,
@@ -146,6 +140,10 @@ try {
   );
 } catch (er) {
   console.error("Sorry: " + er);
+}
+
+function good_weapon(weapon) {
+  return weapon != process.env.sharp_weapon;
 }
 ```
 
