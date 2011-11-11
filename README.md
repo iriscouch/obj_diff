@@ -93,8 +93,8 @@ diff.atleast(
   "age", Number, GREATER, // Age must increase in number
   "age", LESSER, Number,  // (same as the previous test)
 
-  "weight"   , GREATER, LESSER , // Mandatory weight loss
-  "happiness", LESSER , GREATER, // Mandatory improved mood
+  "weight", GREATER, LESSER , // Mandatory weight loss
+  "age"   , 21 , GREATER,     // Must increase from 21
 
   "WRONG", GREATER, GREATER, // This always fails.
   "WRONG", LESSER , LESSER , // This always fails.
@@ -117,12 +117,10 @@ diff.atmost(
   "name.middle", obj_diff.ANY, /^\w$/
 );
 
-// Or as an assertion.
-
 // Or as an assertion, with an extra "reason" argument.
 try {
   diff.assert.atleast(
-    "some_key          , "must become new new" , "old_value" , "new_value",
+    "some_key"         , "must become new new" , "old_value" , "new_value",
     "options.log.level", "must upgrade to info", "debug"     , "info",
     "name"             , "must start with 'S'" , obj_diff.ANY, /^S/,
     "weapon"           , "cannot be sharp"     , obj_diff.ANY, good_weapon
@@ -169,8 +167,8 @@ obj_diff excels (and was designed for) [Apache CouchDB][couchdb] `validate_doc_u
 First of all, CouchDB changes document metadata under the hood, and you don't want that triggering false alarms. So the first thing is to set obj_diff's [defaults][def] for CouchDB mode, which modifies *atmost()* to allow normal document changes:
 
 1. `null` is treated as an empty object, `{}`. This always works: `doc_diff(oldDoc, newDoc)`
-2. The String `._rev` may change.
-3. The Array `._revisions.ids` may change.
+2. The string `._rev` may change.
+3. The array `._revisions.ids` may change.
 4. *assert.atleast()* and *assert.atmost()* throw `{"forbidden": <reason>}` objects that Couch likes.
 
 Thus, this is your typical `validate_doc_update` function:
