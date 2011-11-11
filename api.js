@@ -16,7 +16,7 @@ require('defaultable').def(module,
   {
   }, function(module, exports, DEFS, require) {
 
-var diff = require('./diff')
+var diff = require('./lib/diff')
   , diffs = require('./lib/diffs')
   ;
 

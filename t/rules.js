@@ -18,7 +18,7 @@ var test = require('tap').test
   , util = require('util')
   , I = function(obj) { return util.inspect(obj, false, 10) }
   , obj_diff = require('../api')
-  , rules = require('../rules')
+  , rules = require('../lib/rules')
   ;
 
 var ANY = obj_diff.ANY;
