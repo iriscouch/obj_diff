@@ -16,12 +16,14 @@ require('defaultable')(module,
   {
   }, function(module, exports, DEFS, require) {
 
+var util = require('util');
 
 module.exports = { 'encode'  : encode
                  , 'decode'  : decode
                  , 'typeOf'  : typeOf
                  , 'is_equal': is_equal
 
+                 , 'I' : inspect
                  , 'JS': JSON.stringify
                  };
 
@@ -35,6 +37,10 @@ module.exports.ANY  = ['any'];
 //
 // Utilities
 //
+
+function inspect(obj) {
+  return util.inspect(obj, false, 5);
+}
 
 function encode(obj) {
   var type = typeOf(obj);
@@ -72,13 +78,24 @@ function encode(obj) {
 }
 
 function decode(obj) {
+  console.error('decode: ' + inspect(obj));
   var type = typeOf(obj);
+  var k, result;
+
+  if(type === 'object') {
+    result = {};
+    for (k in obj)
+      if(obj.hasOwnProperty(k))
+        result[k] = decode(obj[k]);
+    return result;
+  }
 
   if(type !== 'array')
     return obj;
 
-  type = obj[0];
-  obj = obj.slice(1);
+  var type = obj[0];
+  obj      = obj[1];
+
 
   if(type === 'array')
     return obj;
@@ -102,7 +119,7 @@ function decode(obj) {
   else if(type === 'Array')
     return Array;
 
-  throw new Error('Unknown object to decode: ' + require('util').inspect(obj));
+  throw new Error('Unknown object to decode: ' + inspect(obj));
   throw new Error('Unknown object to decode: ' + JSON.stringify(obj));
 }
 

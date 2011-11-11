@@ -16,10 +16,14 @@ require('defaultable').def(module,
   {
   }, function(module, exports, DEFS, require) {
 
-var diff_mod = require('./diff');
+var diff = require('./diff')
+  , diffs = require('./lib/diffs')
+  ;
 
-module.exports = diff_mod.diff;
-module.exports.ANY = diff_mod.ANY;
-module.exports.GONE = diff_mod.GONE;
+exports = module.exports = diff.diff;
+
+exports.Diff = diffs.Diff;
+exports.ANY = diff.ANY;
+exports.GONE = diff.GONE;
 
 }) // defaultable

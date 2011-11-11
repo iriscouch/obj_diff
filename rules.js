@@ -28,9 +28,36 @@ module.exports = { 'Rule': Rule
 function Rule (key, from, to) {
   var self = this;
   var args = Array.prototype.slice.apply(arguments);
-  console.error('Args: ' + JSON.stringify(args))
+  var rule;
 
-  if(args.length === 1 && lib.typeOf(args[0]) === 'object') {
+  if(args.length === 1 && lib.typeOf(key) === 'object') // rule data given directly
+    rule = key;
+  else if(args.length === 3)
+    rule = lib.encode({'key':key, 'from':from, 'to':to});
+  else
+    throw new Error('Unknown arguments: ' + JSON.stringify(args));
+
+  self.key = rule.key;
+  self.from = rule.from;
+  self.to = rule.to;
+
+  console.error('Rule: ' + lib.I(self));
+}
+
+/*
+function x_Rule (key, from, to) {
+  var self = this;
+  var args = Array.prototype.slice.apply(arguments);
+  //throw new Error('Args: ' + JSON.stringify(args));
+  console.error('Rule args: ' + require('util').inspect(args, false, 10))
+
+  if(args.length === 3) {
+    self.key  = key;
+    self.from = from;
+    self.to   = to;
+  }
+
+  else if(args.length === 1 && lib.typeOf(args[0]) === 'object') {
     ; ['key', 'from', 'to'].forEach(function(req) {
       if(! (req in args[0]))
         throw new Error('Missing "'+req+'" for rule object: ' + JSON.stringify(args));
@@ -41,52 +68,70 @@ function Rule (key, from, to) {
     self.to   = lib.decode(args[0].to);
   }
 
-  else if(args.length === 3) {
-    self.key  = key;
-    self.from = lib.decode(from);
-    self.to   = lib.decode(to);
-  }
-
   else
     throw new Error('Invalid rules parameters: ' + JSON.stringify([key, from, to]));
+
+  console.error('Rule: ' + lib.I(self));
 }
 
 Rule.prototype.toJSON = function(key) {
   return lib.encode(this);
 }
+*/
 
 Rule.prototype.match = function(key, from, to) {
   var self = this;
 
-  console.error('Match ' + require('util').inspect({rule:[self.key, self.from, self.to], change:[key, from, to]}, false, 5));
-  return self.key === key && element_match(self.from, from) && element_match(self.to, to);
+  console.error('Match ' + lib.I([self.key, self.from, self.to]) + ' to ' + lib.I([key, from, to]));
+  var result = (  self.key === key
+               && element_match(self.from, from)
+               && element_match(self.to, to)
+               );
+
+  console.error(' = = > ' + result);
+  return result;
 }
 
 
 function element_match(guide, element) {
+  var result = _element_match(guide, element);
+  console.error('element match: ' + lib.I(guide) + ' to ' + lib.I(element));
+  console.error(' => ' + result);
+  return result;
+}
+
+function _element_match(guide, element) {
   element = lib.decode(element);
+  element = {'type':lib.typeOf(element), 'val':element};
+  guide   = {'type':lib.typeOf(guide)  , 'val':guide  };
+  console.error(lib.I({el:element, gu:guide}));
 
-  console.error('element match: ' + require('util').inspect({guide:guide, element:element}, false, 5))
-  var type = lib.typeOf(element);
+  // Check for an escaped array.
+  if(guide.type === 'array' && guide.val[0] === 'array')
+    guide.val = guide.val[1];
 
-  if(guide === Boolean && type === 'boolean' ||
-     guide === String && type === 'string'   ||
-     guide === Object && type === 'object'   ||
-     guide === Array && type === 'array'     ||
-     guide === Number && type === 'number')
-    return true;
+  else if(guide.type === 'array') {
+    // Evaluate special stuff.
+    var special = guide.val[0];
 
-  else if(lib.typeOf(guide) === 'array') {
-    guide = guide[0];
-
-    if(guide === 'any')
+    if(special === 'any')
       return true;
 
-    else if(guide === 'gone' && lib.typeOf(element) === 'array' && element[0] === 'gone')
-      return true;
+    if(special === 'gone')
+      return element.type === 'array' && element.val[0] === 'gone';
+
+    if(special === 'Boolean'  ) return element.type === 'boolean';
+    if(special === 'String'   ) return element.type === 'string';
+    if(special === 'Object'   ) return element.type === 'object';
+    if(special === 'Array'    ) return element.type === 'array';
+    if(special === 'Number'   ) return element.type === 'number';
+    if(special === 'undefined') return element.type === 'undefined';
+
+    else
+      throw new Error('Unknown guide: ' + lib.I(guide.val));
   }
 
-  return lib.is_equal(guide, element);
+  return lib.is_equal(guide.val, element.val);
 }
 
 

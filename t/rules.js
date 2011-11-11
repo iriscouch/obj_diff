@@ -23,6 +23,40 @@ var test = require('tap').test
 
 var ANY = obj_diff.ANY;
 var GONE = obj_diff.GONE;
+var TRUTHY = obj_diff.TRUTHY;
+var FALSY  = obj_diff.FALSY;
+
+test('Aliases', function(t) {
+  var pass = tester(t, true);
+  var fail = tester(t, false);
+
+  t_alias(ANY, pass, 'ANY matches negative numbers', -1.5, 0)
+  t_alias(ANY, pass, 'ANY matches positive numbers', 0, 1.5)
+  t_alias(ANY, pass, 'ANY matches a string', 'a string', 'another string')
+  t_alias(ANY, pass, 'ANY matches a boolean', true, false)
+  t_alias(ANY, pass, 'ANY matches an array', [1,2], ['a','b'])
+
+  pass('ANY matches an object (from)', {val:{obj:'ect'}}, {val:'foo'}, 'val', ANY, 'foo')
+  pass('ANY matches an object (to)'  , {val:'foo'}, {val:{obj:'ect'}}, 'val', 'foo', ANY)
+
+  pass('ANY matches GONE (to)'  , {togo:'I will go'}, {}, 'togo', 'I will go', ANY)
+  pass('ANY matches GONE (from)', {}, {came:'I came'}, 'came', ANY, 'I came')
+
+  t.end();
+
+  // Test an alias in to, from, and both positions.
+  function t_alias(alias, tester, message, oldVal, newVal) {
+    var key = 'test_' + JSON.stringify(alias).replace(/[^\w]/g, '').toUpperCase();
+
+    var oldObj = {}, newObj = {};
+    oldObj[key] = oldVal;
+    newObj[key] = newVal;
+
+    tester(message + ' (to)'  , oldObj, newObj, key, oldVal, alias )
+    tester(message + ' (from)', oldObj, newObj, key, alias , newVal)
+    tester(message + ' (both)', oldObj, newObj, key, alias , alias )
+  }
+})
 
 test('Type matching', function(t) {
   var pass = tester(t, true);
@@ -120,6 +154,8 @@ test('Falsy types', function(t) {
   t.end()
 })
 
+// TODO: nochange
+
 //
 // Utilities
 //
@@ -127,24 +163,28 @@ test('Falsy types', function(t) {
 function tester(t, expected) {
   return function(message, from, to, key, oldval, newval) {
     // Round-trip through JSON to make sure it's JSON-storable.
-    var diff = obj_diff(from, to);
-    diff = JSON.parse(JSON.stringify(diff));
-    // NOTE: Leaving this as a plain object to see if rules can still understand it.
+    var diff_0 = obj_diff(from, to);
+    var diff_j = JSON.stringify(diff_0);
+    //console.error('Diff JSON: ' + I(diff));
+    var diff = new obj_diff.Diff(JSON.parse(diff_j));
+    //console.error('RT Diff: ' + I(diff));
+    t.same(diff, diff_0, 'Diff JSON round-trip: ' + diff_j);
 
-    var changed_keys = Object.keys(diff.changes);
-    t.equal(changed_keys.length, 1, 'Rule tests should have only one change');
+    var changed_keys = Object.keys(diff);
+    t.equal(changed_keys.length, 1, 'Rule tests should have only one change: ' + JSON.stringify(diff));
 
     var change_key  = changed_keys[0];
-    var change_from = diff.changes[change_key].from;
-    var change_to   = diff.changes[change_key].to;
+    var change_from = diff[change_key].from;
+    var change_to   = diff[change_key].to;
 
     // Round-trip through JSON to make sure it's JSON-storable.
-    var rule = new rules.Rule(key, oldval, newval);
+    var rule_0 = new rules.Rule(key, oldval, newval);
     //console.error('Before: ' + I(rule))
-    rule = JSON.parse(JSON.stringify(rule));
+    var rule_j = JSON.stringify(rule_0);
     //console.error('JSON: ' + I(rule))
-    rule = new rules.Rule(rule);
+    var rule = new rules.Rule(JSON.parse(rule_j));
     //console.error('After: ' + I(rule))
+    t.same(rule, rule_0, 'Rule JSON round-trip: ' + rule_j);
 
     var result = rule.match(change_key, change_from, change_to);
     t.equal(result, expected, message);

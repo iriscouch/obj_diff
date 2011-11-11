@@ -20,11 +20,11 @@ defaultable(module,
 
 var lib = require('./lib')
   , rules = require('./rules')
+  , diffs = require('./lib/diffs')
   , assert = require('assert')
   ;
 
 module.exports = { 'diff': diff
-                 , 'Diff': Diff
                  , 'GONE': lib.GONE
                  , 'ANY' : lib.ANY
                  };
@@ -35,111 +35,9 @@ function diff(from, to, opts) {
   assert.equal(lib.typeOf(from), 'object', 'First argument is not an object');
   assert.equal(lib.typeOf(to)  , 'object', 'Second argument is not an object');
 
-  var result = new Diff(opts);
-  result.changes = obj_diff(from, to);
-
-  return result;
-}
-
-function obj_diff(from, to, result, prefix) {
-  var all_keys = {};
-  Object.keys(from).forEach(function(key) { all_keys[key] = 1 });
-  Object.keys(to)  .forEach(function(key) { all_keys[key] = 1 });
-  all_keys = Object.keys(all_keys);
-
-  console.log('doc_diff: from=%j to=%j', from, to);
-  result = result || {};
-
-  all_keys.forEach(function(key) {
-    var from_val = from[key];
-    var to_val   = to[key];
-
-    var change_key = key;
-    if(prefix)
-      change_key = prefix + '.' + key;
-
-    console.dir({toprop:to.hasOwnProperty(key), fromprop:from.hasOwnProperty(key)});
-    if(!to.hasOwnProperty(key))
-      result[change_key] = {'from':from_val, 'to':lib.GONE};
-
-    else if(!from.hasOwnProperty(key))
-      result[change_key] = {'from':lib.GONE, 'to':to_val};
-
-    else if(lib.typeOf(from_val) == 'object' && lib.typeOf(to_val) == 'object') {
-      obj_diff(from_val, to_val, result, change_key);
-      //if(!lib.is_equal(obj_diff, {}))
-      //  diff.changes[key] = obj_diff;
-    }
-
-    else if(!lib.is_equal(from_val, to_val))
-      result[change_key] = {'from':from_val, 'to':to_val};
-
-  })
-
-  console.error('Diff: ' + require('util').inspect(result));
-  return result;
-}
-
-function Diff (old_diff) {
-  var self = this;
-
-  old_diff = old_diff || {};
-  Object.keys(old_diff).forEach(function(key) {
-    self[key] = old_diff[key];
-  })
-}
-
-Diff.prototype.toJSON = function(key) {
-  return lib.encode(this);
-}
-
-
-// Return whether the differences between two documents contains a subset of those specified.
-Diff.prototype.atmost = function() {
-  var self = this;
-
-  var all_rules = rules.make.apply(null, arguments);
-
-  if(DEFS.revisions) {
-    // Allow CouchDB changes to ._revisions.
-    all_rules.push(new rules.Rule('_revisions.ids'
-                                 , Array
-                                 , function(X) { return lib.typeOf(X) === 'array' && X.length > 0 }));
-
-  //console.error('atmost\n%s', require('util').inspect({diff:self, rules:all_rules}));
-
-  var key, a, is_match;
-  for (key in self.changes) {
-    if(!self.changes.hasOwnProperty(key))
-      continue;
-
-    is_match = false;
-    for(a = 0; a < all_rules.length; a++)
-      if(all_rules[a].match(key, self.changes[key].from, self.changes[key].to)) {
-        is_match = true;
-        break;
-      }
-
-
-    if(!is_match)
-      return false;
-  }
-
-  return true;
-}
-
-Diff.prototype.assert = {};
-
-Diff.prototype.assert.atmost = function() {
-  var self = this;
-
-  var result = self.atmost.apply(self, arguments);
-  assert.equal(is_match, true, 'Change must match: ' + lib.JS(key)
-                               + ' -> ' + lib.JS({'from':self.changes[key].from, 'to':self.changes[key].to}));
-}
-
-Diff.prototype.assert.atleast = function() {
-  throw new Error('Not implemented');
+  return new diffs.Diff(from, to);
+  //var result = diffs.obj_diff(from, to);
+  //return new diffs.Diff(result);
 }
 
 function xdoc_diff_atmost(from, to, allowed, strict) {
@@ -164,8 +62,6 @@ function xdoc_diff_atmost(from, to, allowed, strict) {
     }
   }
   return true;
-}
-
 }
 
 function change_matches(allowed_change, from_value, to_value) {
