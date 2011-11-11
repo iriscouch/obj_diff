@@ -31,6 +31,8 @@ test('Aliases', function(t) {
   var fail = tester(t, false);
 
   var truthies = [-1.5, -0.01, 0.01, 'a string', true, {obj:'ect'}, [], ['any'], ['undefined'], ['null'], [0]];
+  var falsies  = [0, "", null, false, undefined, NaN];
+
   truthies.forEach(function(val) {
     var repr = I(val);
     var has = {'val':val};
@@ -43,7 +45,6 @@ test('Aliases', function(t) {
     fail('FALSY does not match (to) '  +repr, hasnt, has, 'val', 1, FALSY)
   })
 
-  var falsies = [0, "", null, false, undefined, NaN];
   falsies.forEach(function(val) {
     var has   = {'val':val};
     var hasnt = {'val':1};
