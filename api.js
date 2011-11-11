@@ -23,7 +23,9 @@ var diff = require('./lib/diff')
 exports = module.exports = diff.diff;
 
 exports.Diff = diffs.Diff;
-exports.ANY = diff.ANY;
-exports.GONE = diff.GONE;
+
+; ['ANY', 'GONE', 'TRUTHY', 'FALSY'].forEach(function(label) {
+  exports[label] = diff[label];
+})
 
 }) // defaultable

@@ -30,6 +30,31 @@ test('Aliases', function(t) {
   var pass = tester(t, true);
   var fail = tester(t, false);
 
+  var truthies = [-1.5, -0.01, 0.01, 'a string', true, {obj:'ect'}, [], ['any'], ['undefined'], ['null'], [0]];
+  truthies.forEach(function(val) {
+    var repr = I(val);
+    var has = {'val':val};
+    var hasnt = {'val':1};
+
+    pass('TRUTHY matches (from) '+repr, has, hasnt, 'val', TRUTHY, 1)
+    pass('TRUTHY matches (to) '  +repr, hasnt, has, 'val', 1, TRUTHY)
+
+    fail('FALSY does not match (from) '+repr, has, hasnt, 'val', FALSY, 1)
+    fail('FALSY does not match (to) '  +repr, hasnt, has, 'val', 1, FALSY)
+  })
+
+  var falsies = [0, "", null, false, undefined];
+  falsies.forEach(function(val) {
+    var has   = {'val':val};
+    var hasnt = {'val':1};
+
+    fail('TRUTHY does not match (from) '+val, has, hasnt, 'val', TRUTHY, 1)
+    fail('TRUTHY does not match (to) '  +val, hasnt, has, 'val', 1, TRUTHY)
+
+    pass('FALSY matches (from) '+val, has, hasnt, 'val', FALSY, 1)
+    pass('FALSY matches (to) '  +val, hasnt, has, 'val', 1, FALSY)
+  })
+
   t_alias(ANY, pass, 'ANY matches negative numbers', -1.5, 0)
   t_alias(ANY, pass, 'ANY matches positive numbers', 0, 1.5)
   t_alias(ANY, pass, 'ANY matches a string', 'a string', 'another string')
@@ -41,6 +66,9 @@ test('Aliases', function(t) {
 
   pass('ANY matches GONE (to)'  , {togo:'I will go'}, {}, 'togo', 'I will go', ANY)
   pass('ANY matches GONE (from)', {}, {came:'I came'}, 'came', ANY, 'I came')
+
+  pass('GONE', {}, {peeka:'boo'}, 'peeka', GONE, 'boo')
+  pass('GONE', {peeka:'foo'}, {}, 'peeka', 'foo', GONE)
 
   t.end();
 
@@ -62,7 +90,6 @@ test('Type matching', function(t) {
   var pass = tester(t, true);
   var fail = tester(t, false);
 
-  pass('"Gone" type', {}, {peeka:'boo'}, 'peeka', GONE, 'boo')
   pass('String type', {}, {peeka:'boo'}, 'peeka', GONE, String)
   pass('Object type', {}, {peek:{a:"boo"}}, 'peek', GONE, Object)
   pass('Array type' , {}, {peek:['a','boo']}, 'peek', GONE, Array)
