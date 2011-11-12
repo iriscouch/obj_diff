@@ -16,7 +16,8 @@ require('defaultable').def(module,
   {
   }, function(module, exports, DEFS, require) {
 
-var diff = require('./lib/diff')
+var lib = require('./lib')
+  , diff = require('./lib/diff')
   , diffs = require('./lib/diffs')
   ;
 
@@ -24,8 +25,9 @@ exports = module.exports = diff.diff;
 
 exports.Diff = diffs.Diff;
 
-; ['ANY', 'GONE', 'TRUTHY', 'FALSY'].forEach(function(label) {
-  exports[label] = diff[label];
+var aliases = ['ANY', 'GONE', 'TRUTHY', 'FALSY', 'TIMESTAMP'];
+aliases.forEach(function(label) {
+  exports[label] = lib[label];
 })
 
 }) // defaultable

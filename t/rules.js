@@ -25,6 +25,7 @@ var ANY = obj_diff.ANY;
 var GONE = obj_diff.GONE;
 var TRUTHY = obj_diff.TRUTHY;
 var FALSY  = obj_diff.FALSY;
+var TIMESTAMP = obj_diff.TIMESTAMP;
 
 test('Aliases', function(t) {
   var pass = tester(t, true);
@@ -70,6 +71,12 @@ test('Aliases', function(t) {
 
   pass('GONE', {}, {peeka:'boo'}, 'peeka', GONE, 'boo')
   pass('GONE', {peeka:'foo'}, {}, 'peeka', 'foo', GONE)
+
+  var then = "2011-11-11T07:05:56.056Z";
+  var now  = "2011-11-12T07:05:56.056Z";
+
+  t_alias(TIMESTAMP, pass, 'TIMESTAMP matches timestamps', then, now)
+  t_alias(TIMESTAMP, fail, 'TIMESTAMP bad match', then.replace(/T/, ' '), now.replace(/Z/, ''))
 
   t.end();
 
