@@ -25,7 +25,7 @@ exports = module.exports = diff.diff;
 
 exports.Diff = diffs.Diff;
 
-var aliases = ['ANY', 'GONE', 'TRUTHY', 'FALSY', 'TIMESTAMP'];
+var aliases = ['ANY', 'GONE', 'TRUTHY', 'FALSY', 'TIMESTAMP', 'LESSER', 'GREATER'];
 aliases.forEach(function(label) {
   exports[label] = lib[label];
 })

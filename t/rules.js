@@ -25,6 +25,8 @@ var ANY = obj_diff.ANY;
 var GONE = obj_diff.GONE;
 var TRUTHY = obj_diff.TRUTHY;
 var FALSY  = obj_diff.FALSY;
+var LESSER = obj_diff.LESSER;
+var GREATER = obj_diff.GREATER;
 var TIMESTAMP = obj_diff.TIMESTAMP;
 
 test('Aliases', function(t) {
@@ -77,6 +79,32 @@ test('Aliases', function(t) {
 
   t_alias(TIMESTAMP, pass, 'TIMESTAMP matches timestamps', then, now)
   t_alias(TIMESTAMP, fail, 'TIMESTAMP bad match', then.replace(/T/, ' '), now.replace(/Z/, ''))
+
+  pass('LESSER numeric match from', {n:-0.5}, {n:-0.1}, 'n', LESSER, -0.1)
+  fail('LESSER numeric miss from' , {n:-0.5}, {n:-0.1}, 'n', -0.5, LESSER)
+  pass('LESSER numeric match to'  , {n:1}   , {n:0}   , 'n', 1, LESSER)
+  fail('LESSER numeric miss to'   , {n:1}   , {n:0}   , 'n', LESSER, 0)
+
+  pass('LESSER string match from', {s:'Banana'}, {s:'apple'}, 's', LESSER, 'apple') // ASCII comparison
+  fail('LESSER string miss from' , {s:'Banana'}, {s:'apple'}, 's', 'Banana', LESSER)
+  pass('LESSER string match to'  , {s:'Zope'}, {s:'Plone'}, 's', 'Zope', LESSER)
+  fail('LESSER string miss to'   , {s:'Zope'}, {s:'Plone'}, 's', LESSER, 'Plone')
+
+  pass('GREATER numeric match from', {n:0.5}, {n:0.1}, 'n', GREATER, 0.1)
+  fail('GREATER numeric miss from' , {n:0.5}, {n:0.1}, 'n', 0.5, GREATER)
+  pass('GREATER numeric match to'  , {n:0}   , {n:1}   , 'n', 0, GREATER)
+  fail('GREATER numeric miss to'   , {n:0}   , {n:1}   , 'n', GREATER, 1)
+
+  pass('GREATER string match from', {s:'apple'}, {s:'Banana'}, 's', GREATER, 'Banana') // ASCII comparison
+  fail('GREATER string miss from' , {s:'apple'}, {s:'Banana'}, 's', 'apple', GREATER)
+  pass('GREATER string match to'  , {s:'Plone'}, {s:'Zope'}, 's', 'Plone', GREATER)
+  fail('GREATER string miss to'   , {s:'Plone'}, {s:'Zope'}, 's', GREATER, 'Zope')
+
+  t.ok([] < 5, 'Sanity checking less-than of different types')
+  fail('LESSER fails dissimilar types', {v:[]}, {v:5}, 'v', LESSER, ANY)
+
+  t.ok(1 > [], 'Sanity checking greater-than of different types')
+  fail('GREATER fails dissimilar types', {v:1}, {v:[]}, 'v', GREATER, ANY)
 
   t.end();
 
