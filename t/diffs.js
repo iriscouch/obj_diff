@@ -46,23 +46,21 @@ test('Validation', function(t) {
   t.end();
 })
 
-if(0)
 test('Diff objects', function(t) {
   var go = make_tester(t);
 
   go({}, {}, {})
   go({a:1}, {a:1}, {})
-  go({}, {foo:'bar'}, {foo: {from:['undefined'], to:'bar'}})
-  go({foo:'bar'}, {}, {foo: {from:'bar', to:['undefined']}})
+  go({}, {foo:'bar'}, {foo: {from:['gone'], to:'bar'}})
+  go({foo:'bar'}, {}, {foo: {from:'bar', to:['gone']}})
   go({a:1}, {a:"1"}, {a: {from:1, to:"1"}})
-  go({a:1}, {b:1}, {a: {from:1, to:['undefined']}, b: {from:['undefined'], to:1}})
-  go({}, {obj:{hi:true}}, {obj: {from:['undefined'], to:{hi:true}}})
-  go({first:{second:{value:false}}}, {first:{second:{value:true}}}, {first:{second:{value:{from:false, to:true}}}})
+  go({a:1}, {b:1}, {a: {from:1, to:['gone']}, b: {from:['gone'], to:1}})
+  go({}, {obj:{hi:true}}, {obj: {from:['gone'], to:{hi:true}}})
+  go({first:{second:{value:false}}}, {first:{second:{value:true}}}, {'first.second.value':{from:false, to:true}})
 
   t.end();
 })
 
-if(0)
 test('README examples', function(t) {
   var go = make_tester(t);
 
@@ -74,11 +72,11 @@ test('README examples', function(t) {
 
   go({name:"Joe", contact: {email:"doe@example.com"}},
      {name:"Joe", contact: {email:"doe@example.com", cell:"555-1212"}},
-     { contact: { cell: { from: ['undefined'], to: '555-1212' } } })
+     { 'contact.cell': { from: ['gone'], to: '555-1212' } })
 
   go({name:"Joe", contact: {email:"doe@example.com", cell:null      }},
      {name:"Joe", contact: {email:"doe@example.com", cell:"555-1212"}},
-     { contact: { cell: { from: null, to: '555-1212' } } })
+     { 'contact.cell': { from: null, to: '555-1212' } })
 
   t.end();
 })
