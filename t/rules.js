@@ -48,6 +48,11 @@ test('Aliases', function(t) {
     fail('FALSY does not match (to) '  +repr, hasnt, has, 'val', 1, FALSY)
   })
 
+  pass('FALSY matches missing values from', {}, {hi:'there'}, 'hi', FALSY  , 'there')
+  fail('TRUTHY misses missing values from', {}, {hi:'there'}, 'hi', TRUTHY , 'there')
+  pass('FALSY matches missing values to'  , {bi:'there'}, {}, 'bi', 'there', FALSY)
+  fail('TRUTHY misses missing values to'  , {bi:'there'}, {}, 'bi', 'there', TRUTHY)
+
   falsies.forEach(function(val) {
     var has   = {'val':val};
     var hasnt = {'val':1};

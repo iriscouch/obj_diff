@@ -72,7 +72,7 @@ diff.atleast(
   "error", "locked", obj_diff.GONE, // Error must be deleted.
   "child", obj_diff.GONE, "Bob",    // Child must be created.
 
-  // FALSY matches false, null, undefined, the empty string, 0, and NaN.
+  // FALSY matches false, null, undefined, the empty string, 0, NaN, and a missing value.
   "is_new", obj_diff.ANY, obj_diff.FALSY,
 
   // "TRUTHY" matches anything not falsy.
