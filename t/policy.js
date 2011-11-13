@@ -116,7 +116,7 @@ function make_tester(method, assertion, t) {
 
       message = [ message
                 , JSON.stringify(a)
-                , ' -> '
+                , '->'
                 , JSON.stringify(b)
                 , "policy=" + util.inspect(policy)
                 ].join(' ');
