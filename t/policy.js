@@ -17,6 +17,7 @@
 var test = require('tap').test
   , util = require('util')
   , obj_diff = require('../api')
+  , ast_diff = obj_diff.defaults({assert:true})
   , doc_diff = require('../api').defaults({couchdb:true})
   , ANY    = obj_diff.ANY
   , GONE   = obj_diff.GONE
@@ -30,9 +31,15 @@ test('No change', function(t) {
 
   t.equal(diff.nochange(), true, 'nochange detects no change')
 
+  diff = ast_diff(obj, obj);
+  t.doesNotThrow(function() { diff.nochange(); })
+
   diff = obj_diff({foo:'bar'}, {foo:'bar'});
   t.equal(diff.nochange('foo', 'this should be ignored', 'bar', 'new bar value'),
           true, 'nochange detects no change and ignores extra arguments');
+
+  diff = ast_diff({foo:'bar'}, {foo:'bar'});
+  t.doesNotThrow(function() { diff.nochange('foo', 'this should be ignored', 'bar', 'new bar value'); })
 
   t.end()
 })
