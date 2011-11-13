@@ -248,8 +248,9 @@ obj_diff uses [node-tap][tap] unit tests. Install it globally (`npm -g install n
     └── tap-runner@0.0.7
 
     $ ./node_modules/.bin/tap t
-    ok rules.js ..................... 110/110
-    total ........................... 111/111
+    ok diffs.js ....................... 60/60
+    ok rules.js ..................... 734/734
+    total ........................... 796/796
 
     ok
 
