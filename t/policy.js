@@ -65,28 +65,31 @@ test('At most', function(t) {
   t.end();
 })
 
-if(0)
 test('At least', function(t) {
-  var go = make_tester('atleast', t);
+  var pass = make_tester('atleast', 'pass', t);
+  var fail = make_tester('atleast', 'fail', t);
 
-  go('server', 'server', {}, true);
-  go('server', 'server', {change: {}}, false);
-  go('server', {base:'server', jason:'cool'}, {}, true);
-  go('server', {base:'server', jason:'cool'}, {jason: {}}, true);
-  go({base:'server', jason:'cool'}, 'server', {jason: {}}, true);
-  go('server', {base:'server', jason:'cool'}, {jason: {to:'not cool'}}, false);
-  go('server', {base:'server', jason:'cool'}, {jason: {from:undefined, to:/.*/}}, true);
+  pass('No change, no policy', server(), server())
+  fail('No change, specified policy', server(), server(), 'some_key', 'oldval', 'newval')
 
-  // Deeper change
-  go('transfer', 'transfer', {}, true);
-  go('transfer', {base:'transfer', transfer:{to:null}}, {transfer:{to:{}, nest:1}}, true);
-  go('transfer', {base:'transfer', transfer:{to:23}}, {transfer:{nest:true, to:{}}}, true);
-  go('transfer', {base:'transfer', transfer:{to:null}}, {transfer:{nest:true, to:{}}}, true);
+  pass('Unspecified delete', server({reboot:true}), server())
+  pass('Unspecified add'   , server(), server({reboot:true}))
+  fail('Unmatched rule', server({reboot:true}), server(), 'unrelated', ANY, ANY)
 
-  t.throws(function() {
-    go({base:'server', reboot:false}, 'server', {reboot:{from:undefined, to:undefined}}, true);
-  }, 'Undefined from and to')
+  pass('Good explicit rule match', server({reboot:true}), server({reboot:false}), 'reboot', true, false)
+  pass('Good alias rule match 1' , server({reboot:true}), server({reboot:false}), 'reboot', TRUTHY, false)
+  pass('Good alias rule match 2' , server({reboot:true}), server({reboot:false}), 'reboot', true, FALSY)
+  pass('Good alias rule match 3' , server({reboot:true}), server({reboot:false}), 'reboot', TRUTHY, FALSY)
 
+  fail('Bad rule match 1' , server({reboot:true}), server({reboot:false}), 'reboot', true, 'false')
+  fail('Bad rule match 2' , server({reboot:true}), server({reboot:false}), 'reboot', 'true', false)
+
+  fail('Change, unused policy', server(), server({new:true}), 'unrelated', 'old val', 'new val'
+                                                            , 'new'      , GONE     , true)
+
+  fail('Good change, bad change', server({val:1, oops:1}), server({val:2, oops:2})
+                                , 'val' , 1, 2
+                                , 'oops', 1, GONE)
   t.end();
 })
 
