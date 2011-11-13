@@ -17,6 +17,7 @@
 var test = require('tap').test
   , util = require('util')
   , obj_diff = require('../api')
+  , doc_diff = require('../api').defaults({couchdb:true})
   , ANY    = obj_diff.ANY
   , GONE   = obj_diff.GONE
   , TRUTHY = obj_diff.TRUTHY
@@ -93,6 +94,92 @@ test('At least', function(t) {
   t.end();
 })
 
+test('CouchDB exceptions', function(t) {
+  var obj_fail = make_tester('atmost', 'fail', t);
+  var doc_fail = make_tester('atmost', 'fail', t, doc_diff);
+  var doc_pass = make_tester('atmost', 'pass', t, doc_diff);
+
+  changes().forEach(function(change) {
+    var oldval = change.oldDoc ? change.oldDoc.val : GONE;
+    var newval = change.newDoc.val;
+
+    doc_fail('CouchDB '+change.type+' fail normally', change.oldDoc, change.newDoc, 'otherval', 'should', 'fail')
+    doc_pass('CouchDB '+change.type+' passes', change.oldDoc, change.newDoc, 'val', oldval, newval);
+
+    if(change.type == 'replication')
+      obj_fail('CouchDB replication fails atmost', change.oldDoc, change.newDoc, 'val', oldval, newval)
+  })
+
+  t.end()
+
+  function changes() { return (
+    [ { type: 'create'
+      , oldDoc: null
+      , newDoc: { _id: "mydoc"
+                , val: "some value"
+                , _revisions: { start:0
+                              , ids  :[]
+                              }
+                }
+      }
+
+    , { type: 'update'
+      , oldDoc: { _id : "mydoc"
+                , _rev: "1-5c5750951411b5634ed2c478956a7900"
+                , val : "some value"
+                ,_revisions: { start: 1
+                             , ids  : ["5c5750951411b5634ed2c478956a7900"]
+                             }
+                }
+      , newDoc: { _id : "mydoc"
+                , _rev: "1-5c5750951411b5634ed2c478956a7900"
+                , val : "new value"
+                , _revisions: { start: 1
+                              , ids  : ["5c5750951411b5634ed2c478956a7900"]
+                              }
+                }
+      }
+
+    , { type: 'replication'
+      , oldDoc: { _id : "mydoc"
+                , _rev: "2-8d025da253fcf3927c0b81647dd4813a"
+                , val : "new value"
+                , _revisions: { start: 2
+                              , ids  : [ "8d025da253fcf3927c0b81647dd4813a"
+                                       , "5c5750951411b5634ed2c478956a7900"
+                                       ]
+                              }
+                }
+      , newDoc: { _id : "mydoc"
+                , _rev: "4-2d88d505803f5b351e3b407dbf4ae873"
+                , val : "fourth value"
+                , _revisions: { start: 4
+                              , ids  : [ "2d88d505803f5b351e3b407dbf4ae873"
+                                       , "d9f55f665c2deccad2aa54b796014cf8"
+                                       , "8d025da253fcf3927c0b81647dd4813a"
+                                       , "5c5750951411b5634ed2c478956a7900"
+                                       ]
+                              }
+                }
+      }
+
+    , { type: 'replication to missing doc id'
+      , oldDoc: null
+      , newDoc: { _id : "clean"
+                , _rev: "3-1a5cf830ad65d6b8cc2963ab9ce0209b"
+                , val : "third"
+                , _revisions: { start: 3
+                              , ids  : [ "1a5cf830ad65d6b8cc2963ab9ce0209b"
+                                       , "32ca7d6ad69aeeae5842dc68e9b959f3"
+                                       , "53f08fe3baccc045611cf9e3809981f3"
+                                       ]
+                              }
+                }
+      }
+    ])
+  } // changes
+})
+
 test('Utility functions', function(t) {
   var a = server();
   var b = server();
@@ -107,7 +194,9 @@ test('Utility functions', function(t) {
 // Utilities
 //
 
-function make_tester(method, assertion, t) {
+function make_tester(method, assertion, t, diff_mod) {
+  diff_mod = diff_mod || obj_diff;
+
   return tester(assertion == 'pass');
 
   function tester(expected) {
@@ -121,12 +210,18 @@ function make_tester(method, assertion, t) {
                 , "policy=" + util.inspect(policy)
                 ].join(' ');
 
-      var diff = obj_diff(a, b);
+      var diff = diff_mod(a, b);
       var result = diff[method].apply(diff, policy);
       t.equal(result, expected, message);
     }
   }
 }
+//function tester(t, expected, diff_mod) {
+//  diff_mod = diff_mod || obj_diff;
+//
+//  return function(message, from, to, key, oldval, newval) {
+//    // Round-trip through JSON to make sure it's JSON-storable.
+//    var diff_0 = diff_mod(from, to);
 
 function add(extra, obj) {
   extra = extra || {};

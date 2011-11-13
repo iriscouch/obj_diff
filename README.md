@@ -167,9 +167,11 @@ obj_diff excels (and was designed for) [Apache CouchDB][couchdb] `validate_doc_u
 First of all, CouchDB changes document metadata under the hood, and you don't want that triggering false alarms. So the first thing is to set obj_diff's [defaults][def] for CouchDB mode, which modifies *atmost()* to allow normal document changes:
 
 1. `null` is treated as an empty object, `{}`. This always works: `doc_diff(oldDoc, newDoc)`
-2. The string `._rev` may change.
-3. The array `._revisions.ids` may change.
-4. *assert.atleast()* and *assert.atmost()* throw `{"forbidden": <reason>}` objects that Couch likes.
+2. *atmost()* allows normal changes:
+  * `_id` for document creation
+  * `_rev` may change appropriately.
+  * `_revisions.ids` and `_revisions.start` may change appropriately.
+3. *assert.atleast()* and *assert.atmost()* throw `{"forbidden": <reason>}` objects that Couch likes.
 
 Thus, this is your typical `validate_doc_update` function:
 
