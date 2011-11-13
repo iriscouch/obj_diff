@@ -180,6 +180,35 @@ test('Rule matching', function(t) {
   fail('Regex miss' , {no:'Hello, world'}, {}, 'no', /nope/, ANY)
   pass('Regex case insensitive', {i:'Bye World'}, {i:'HELLO WORLD'}, 'i', /^BYE/i, /^HELLO/i)
 
+  // Use strange multi-line source code to trip up the serializer.
+  var is_odd = function(val) { return (val
+                               %
+                               2) == 1 }
+
+  function is_even(val, other) {
+    return (
+    val % 2
+  == 0)};
+
+  function j_and_j(val, other) {
+    return (val == 'jack' && other == 'jill');
+  }
+
+  pass('Function is_even match from', {n:2}, {n:3}, 'n', is_even, ANY)
+  fail('Function is_odd miss from'  , {n:4}, {n:5}, 'n', is_odd, ANY)
+  pass('Function is_odd match to'   , {n:6}, {n:7}, 'n', ANY, is_odd)
+  fail('Function is_even miss to'   , {n:8}, {n:9}, 'n', ANY, is_even)
+
+  pass('Correct predicate parameters from', {role:'jack'}, {role:'jill'}, 'role', j_and_j, ANY)
+  pass('Correct predicate parameters to'  , {role:'jill'}, {role:'jack'}, 'role', ANY, j_and_j)
+  fail('Wrong predicate parameters from'  , {role:'jill'}, {role:'jack'}, 'role', j_and_j, ANY)
+  fail('Wrong predicate parameters to'    , {role:'jack'}, {role:'jill'}, 'role', ANY, j_and_j)
+
+  t.throws(function() {
+    function bad_odd(val) { return ! is_even(val) }
+    pass('Function bad_odd', {n:10}, {n:11}, 'n', ANY, bad_odd)
+  })
+
   t.end()
 })
 
