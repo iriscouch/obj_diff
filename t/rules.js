@@ -68,7 +68,9 @@ test('Aliases', function(t) {
   t_alias(ANY, pass, 'ANY matches positive numbers', 0, 1.5)
   t_alias(ANY, pass, 'ANY matches a string', 'a string', 'another string')
   t_alias(ANY, pass, 'ANY matches a boolean', true, false)
-  t_alias(ANY, pass, 'ANY matches an array', [1,2], ['a','b'])
+
+  pass('ANY matches an array from', {a:[1,2]}, {a:'[1,2]'}, 'a', ANY, '[1,2]')
+  pass('ANY matches an array to'  , {a:'[1,2]'}, {a:[1,2]}, 'a', '[1,2]', ANY)
 
   pass('ANY matches an object (from)', {val:{obj:'ect'}}, {val:'foo'}, 'val', ANY, 'foo')
   pass('ANY matches an object (to)'  , {val:'foo'}, {val:{obj:'ect'}}, 'val', 'foo', ANY)
@@ -218,6 +220,29 @@ test('Rule matching', function(t) {
   })
 
   t.end()
+})
+
+test('Nested object matching', function(t) {
+  var pass = tester(t, true);
+  var fail = tester(t, false);
+
+  pass('1 Nested object from', {o:{val:'bye'}}, {o:{}}, 'o.val', 'bye', GONE)
+  pass('1 Nested object to'  , {o:{}}, {o:{val:'hi'}} , 'o.val', GONE, 'hi')
+  pass('1 nested object both', {o:{val:'in'}}, {o:{val:'out'}}, 'o.val', 'in', 'out')
+
+  pass('Deeply nested', {one:{two:{three:{four:'five'}}}}, {one:{two:{three:{four:'jive'}}}},
+                        'one.two.three.four', 'five', 'jive')
+
+  pass('Any object key works', {cfg:{'log-level':{'is!':5}}}, {cfg:{'log-level':{'is!':6}}},
+                               'cfg.log-level.is!', 5, 6)
+
+  pass('Array change', {a:['jason', 'hunter', 'smith']}, {a:['jason', 'awesome', 'smith']}, 'a[1]', 'hunter', 'awesome');
+
+  pass('Different nesting', {li:['foo', 'bar', {obj:{'key':'val', 'array 2': ['this', 'is', 'array 2']}}]}
+                          , {li:['foo', 'bar', {obj:{'key':'val', 'array 2': ['this', 'is', 'changed']}}]}
+                          , 'li[2].obj.array 2[2]', 'array 2', 'changed')
+
+  t.end();
 })
 
 test('Falsy types', function(t) {
