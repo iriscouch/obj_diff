@@ -199,6 +199,9 @@ test('Rule matching', function(t) {
     return (val == 'jack' && other == 'jill');
   }
 
+  pass('Function is_even match both', {n:2}, {n:4}, 'n', is_even, is_even)
+  fail('Function is_even miss both' , {n:5}, {n:7}, 'n', is_even, is_even)
+  pass('Functions match both'       , {n:8}, {n:9}, 'n', is_even, is_odd)
   pass('Function is_even match from', {n:2}, {n:3}, 'n', is_even, ANY)
   fail('Function is_odd miss from'  , {n:4}, {n:5}, 'n', is_odd, ANY)
   pass('Function is_odd match to'   , {n:6}, {n:7}, 'n', ANY, is_odd)
