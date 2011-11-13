@@ -19,52 +19,23 @@ var test = require('tap').test
   , obj_diff = require('../api')
   ;
 
-function make_testers(method, t) {
-  return { 'pass': tester(true)
-         , 'fail': tester(false)
-         };
+test('No change', function(t) {
+  var obj = {foo:['bar', {baz:'quux'}]};
+  var diff = obj_diff(obj, obj);
 
-  function tester(expected) {
-    return function(message, a, b) {
-      var policy = Array.prototype.slice.call(arguments, 3);
+  t.equal(diff.nochange(), true, 'nochange detects no change');
 
-      var diff, result;
-      message = [ message
-                , JSON.stringify(a)
-                , ' -> '
-                , JSON.stringify(b)
-                , "policy=" + util.inspect(policy)
-                ].join(' ');
+  diff = obj_diff({foo:'bar'}, {foo:'bar'});
+  t.equal(diff.nochange('foo', 'this should be ignored', 'bar', 'new bar value'),
+          true, 'nochange detects no change and ignores extra arguments');
 
-      diff = obj_diff(a, b);
-      result = diff[method].apply(diff, policy);
-      t.equal(result, expected, message);
-
-      diff = obj_diff(a, b, {assert:true});
-      function go() { diff[method].apply(diff, policy) }
-      if(expected)
-        t.doesNotThrow(go, 'No throw: ' + message)
-      else
-        t.throws(go, 'Throws: ' + message);
-    }
-  }
-}
-
-test('Utility functions', function(t) {
-  var a = server();
-  var b = server();
-
-  t.same(a, b, 'Server generator makes congruent objects');
-  t.isNot(a, b, 'Server generator makes unique objects');
-
-  t.end();
+  t.end()
 })
 
+if(0)
 test('At most', function(t) {
-  var testers = make_testers('atmost', t)
-    , pass = testers.pass
-    , fail = testers.fail
-    ;
+  var pass = make_tester('atmost', 'pass', t);
+  var fail = make_tester('atmost', 'fail', t);
 
   pass('No change, no policy', server(), server())
   pass('No change, unused policy', server(), server(), 'some_key', 'oldval', 'newval')
@@ -78,8 +49,8 @@ test('At most', function(t) {
   pass('Match hit/hit rule', server({reboot:true}), server(), 'reboot', true, ['gone'])
 
   fail('"true" is not true', server({reboot:true}), server(), 'reboot', 'true', ANY)
-  
-  fail('Null is not undefined', server({reboot:true}), server({reboot:null}), 'reboot', true, 
+
+  //fail('Null is not undefined', server({reboot:true}), server({reboot:null}), 'reboot', true, 
 
   //go({base:'server', reboot:true}, 'server', {reboot:{}}, true);
   //go({base:'server', reboot:true}, 'server', {reboot:{from:"won't match"}}, false);
@@ -136,76 +107,59 @@ test('At least', function(t) {
   t.end();
 })
 
-function xxmake_tester(method, t) {
-  return function(from_id, to_id, policy, expected) {
-    var from_merge = {}, to_merge = {};
+test('Utility functions', function(t) {
+  var a = server();
+  var b = server();
 
-    if(typeof from_id == 'object') {
-      from_merge = from_id;
-      from_id = from_merge.base;
-      delete from_merge.base;
-    }
-    if(typeof to_id == 'object') {
-      to_merge = to_id;
-      to_id = to_merge.base;
-      delete to_merge.base;
-    }
+  t.same(a, b, 'Server generator makes congruent objects');
+  t.isNot(a, b, 'Server generator makes unique objects');
 
-    var from = JSON.parse(JSON.stringify(fixtures[from_id]));
-    var to   = JSON.parse(JSON.stringify(fixtures[to_id]));
-
-    var k;
-    for(k in from_merge) {
-      if(from_merge[k] === undefined)
-        delete from[k];
-      else
-        from[k] = from_merge[k];
-    }
-
-    for(k in to_merge) {
-      if(to_merge[k] === undefined)
-        delete to[k];
-      else
-        to[k] = to_merge[k];
-    }
-
-    var result = obj_diff[method](from, to, policy);
-    var message = [ "from="   + JSON.stringify(from)
-                  , "to="     + JSON.stringify(to)
-                  , "policy=" + JSON.stringify(policy)
-                  ].join(' ');
-
-    return t.same(result, expected, message);
-  }
-
-}
+  t.end();
+})
 
 //
 // Utilities
 //
 
+function make_tester(method, assertion, t) {
+  return tester(assertion == 'pass');
+
+  function tester(expected) {
+    return function(message, a, b) {
+      var policy = Array.prototype.slice.call(arguments, 3);
+
+      message = [ message
+                , JSON.stringify(a)
+                , ' -> '
+                , JSON.stringify(b)
+                , "policy=" + util.inspect(policy)
+                ].join(' ');
+
+      var diff = obj_diff(a, b);
+      var result = diff[method].apply(diff, policy);
+      t.equal(result, expected, message);
+    }
+  }
+}
+
 function add(extra, obj) {
   extra = extra || {};
-  for (var k in extra)
-    obj[k] = extra[k];
+  for (var k in extra) {
+    if(typeof obj[k] == 'object' && typeof extra[k] == 'object')
+      obj[k] = add(extra[k], obj[k])
+    else
+      obj[k] = extra[k];
+  }
   return obj;
 }
 
 function server(extra) {
   return add(extra, { _id: 'Server/foo'
                     , _rev: '1-blah'
-                    , state: 'running'
-                    });
-}
-
-function transfer(extra) {
-  return add(extra, { _id: 'Server/foo'
-                    , _rev: '1-blah'
                     , state: 'transfer'
                     , transfer: {"to":"Manager/somebody"}
+                    , backups: [ {ok:true , date:"2011-11-13T02:03:08.971Z"}
+                               , {ok:false, date:"2011-10-13T02:03:08.971Z"}
+                               ]
                     });
-}
-
-function ANY() {
-  return true;
 }
