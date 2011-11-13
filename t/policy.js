@@ -17,6 +17,10 @@
 var test = require('tap').test
   , util = require('util')
   , obj_diff = require('../api')
+  , ANY    = obj_diff.ANY
+  , GONE   = obj_diff.GONE
+  , TRUTHY = obj_diff.TRUTHY
+  , FALSY  = obj_diff.FALSY
   ;
 
 test('No change', function(t) {
@@ -32,7 +36,6 @@ test('No change', function(t) {
   t.end()
 })
 
-if(0)
 test('At most', function(t) {
   var pass = make_tester('atmost', 'pass', t);
   var fail = make_tester('atmost', 'fail', t);
@@ -40,44 +43,24 @@ test('At most', function(t) {
   pass('No change, no policy', server(), server())
   pass('No change, unused policy', server(), server(), 'some_key', 'oldval', 'newval')
 
-  fail('Unexpected delete', server({reboot:true}), server())
-  fail('Unexpected add'   , server(), server({reboot:true}))
-  fail('Unrelated rule', server({reboot:true}), server(), 'unrelated', ANY, ANY)
+  fail('Unspecified delete', server({reboot:true}), server())
+  fail('Unspecified add'   , server(), server({reboot:true}))
+  fail('Unmatched rule', server({reboot:true}), server(), 'unrelated', ANY, ANY)
 
-  pass('Match any/any rule', server({reboot:true}), server(), 'reboot', ANY, ANY)
-  pass('Match hit/any rule', server({reboot:true}), server(), 'reboot', true, ANY)
-  pass('Match hit/hit rule', server({reboot:true}), server(), 'reboot', true, ['gone'])
+  pass('Good explicit rule match', server({reboot:true}), server({reboot:false}), 'reboot', true, false)
+  pass('Good alias rule match 1' , server({reboot:true}), server({reboot:false}), 'reboot', TRUTHY, false)
+  pass('Good alias rule match 2' , server({reboot:true}), server({reboot:false}), 'reboot', true, FALSY)
+  pass('Good alias rule match 3' , server({reboot:true}), server({reboot:false}), 'reboot', TRUTHY, FALSY)
 
-  fail('"true" is not true', server({reboot:true}), server(), 'reboot', 'true', ANY)
+  fail('Bad rule match 1' , server({reboot:true}), server({reboot:false}), 'reboot', true, 'false')
+  fail('Bad rule match 2' , server({reboot:true}), server({reboot:false}), 'reboot', 'true', false)
 
-  //fail('Null is not undefined', server({reboot:true}), server({reboot:null}), 'reboot', true, 
+  pass('Change, unused policy', server(), server({new:true}), 'unrelated', 'old val', 'new val'
+                                                            , 'new'      , GONE     , true)
 
-  //go({base:'server', reboot:true}, 'server', {reboot:{}}, true);
-  //go({base:'server', reboot:true}, 'server', {reboot:{from:"won't match"}}, false);
-  //go({base:'server', reboot:true}, 'server', {reboot:{to:"won't match"}}, false);
-  //go({base:'server', reboot:true}, 'server', {reboot:{}}, true);
-  //go({base:'server', reboot:true}, 'server', {reboot:{from:true}}, true);
-  //go({base:'server', reboot:true}, 'server', {reboot:{to:undefined}}, true);
-  //go({base:'server', reboot:true}, 'server', {reboot:{from:true, to:undefined}}, true);
-  //go({base:'server', reboot:true}, 'server', {reboot:{from:666}}, false);
-  //go({base:'server', reboot:true}, 'server', {reboot:{to:null}}, false);
-  //go({base:'server', reboot:true}, 'server', {reboot:{from:'badfrom',to:'badto'}}, false);
-
-  // Adding and removing arrays.
-  //go('server', {base:'server', ar:['hi']}, {}, false);
-  //go('server', {base:'server', ar:['hi']}, {ar:{to:Array}}, true);
-  //go({base:'server', ar:['yo']}, 'server', {ar:{from:Array}}, true);
-
-  // Deleting keys.
-  //go('server', {base:'server', state:undefined}, {}, false);
-  //go('server', {base:'server', state:undefined}, {state:{}}, true);
-  //go('server', {base:'server', state:undefined}, {state:{to:undefined}}, true);
-  //go('server', {base:'server', state:undefined}, {state:{to:/.*/}}, false);
-
-  // Deeper changes
-  //go('transfer', 'transfer', {}, true);
-  //go('transfer', {base:'transfer'}, {transfer:{to:{}}}, true);
-  //go('transfer', {base:'transfer', transfer:{to:null}}, {transfer:{nest:true, to:{}}}, true);
+  fail('Good change, bad change', server({val:1, oops:1}), server({val:2, oops:2})
+                                , 'val' , 1, 2
+                                , 'oops', 1, GONE)
 
   t.end();
 })
