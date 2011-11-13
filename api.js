@@ -17,13 +17,14 @@ require('defaultable').def(module,
   }, function(module, exports, DEFS, require) {
 
 var lib = require('./lib')
-  , diff = require('./lib/diff')
   , diffs = require('./lib/diffs')
+  , rules = require('./lib/rules')
   ;
 
-exports = module.exports = diff.diff;
+exports = module.exports = diffs.diff;
 
 exports.Diff = diffs.Diff;
+exports.Rule = rules.Rule;
 
 var aliases = ['ANY', 'GONE', 'TRUTHY', 'FALSY', 'TIMESTAMP', 'LESSER', 'GREATER'];
 aliases.forEach(function(label) {
