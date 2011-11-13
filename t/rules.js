@@ -18,6 +18,7 @@ var test = require('tap').test
   , util = require('util')
   , I = function(obj) { return util.inspect(obj, false, 10) }
   , obj_diff = require('../api')
+  , doc_diff = require('../api').defaults({couchdb:true})
   , rules = require('../lib/rules')
   ;
 
@@ -283,19 +284,32 @@ test('Falsy types', function(t) {
   t.end()
 })
 
-// TODO: nochange
+test('CouchDB exceptions', function(t) {
+  var nilDoc = null;
+  var oldDoc = { _id: 'doc_id', _rev: '1-abcdef', val:'some value' };
+  var newDoc = { _id: 'doc_id', _rev: '2-fedcba', val:'some value' };
+
+  t.throws(      function() { obj_diff(nilDoc, newDoc) }, 'obj_diff does not allow null objects')
+  t.throws(      function() { obj_diff(newDoc, nilDoc) }, 'obj_diff does not allow null objects')
+  t.throws(      function() { doc_diff(newDoc, nilDoc) }, 'doc_diff does not allow null to objects')
+  t.doesNotThrow(function() { doc_diff(nilDoc, newDoc) }, 'doc_diff allows null from objects')
+
+  t.end()
+})
 
 //
 // Utilities
 //
 
-function tester(t, expected) {
+function tester(t, expected, diff_mod) {
+  diff_mod = diff_mod || obj_diff;
+
   return function(message, from, to, key, oldval, newval) {
     // Round-trip through JSON to make sure it's JSON-storable.
-    var diff_0 = obj_diff(from, to);
+    var diff_0 = diff_mod(from, to);
     var diff_j = JSON.stringify(diff_0);
     //console.error('Diff JSON: ' + I(diff));
-    var diff = new obj_diff.Diff(JSON.parse(diff_j));
+    var diff = new diff_mod.Diff(JSON.parse(diff_j));
     //console.error('RT Diff: ' + I(diff));
     t.same(diff, diff_0, 'Diff JSON round-trip: ' + diff_j);
 
