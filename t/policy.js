@@ -28,7 +28,7 @@ test('No change', function(t) {
   var obj = {foo:['bar', {baz:'quux'}]};
   var diff = obj_diff(obj, obj);
 
-  t.equal(diff.nochange(), true, 'nochange detects no change');
+  t.equal(diff.nochange(), true, 'nochange detects no change')
 
   diff = obj_diff({foo:'bar'}, {foo:'bar'});
   t.equal(diff.nochange('foo', 'this should be ignored', 'bar', 'new bar value'),
