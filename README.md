@@ -119,7 +119,7 @@ diff.atmost(
 
 // Or as an assertion, with an extra "reason" argument.
 try {
-  diff.assert.atleast(
+  diff.assert_atleast(
     "some_key"         , "must become new new" , "old_value" , "new_value",
     "options.log.level", "must upgrade to info", "debug"     , "info",
     "name"             , "must start with 'S'" , obj_diff.ANY, /^S/,
@@ -130,7 +130,7 @@ try {
 }
 
 try {
-  diff.assert.atmost(
+  diff.assert_atmost(
     "weapon"     , "cannot be sharp"       , obj_diff.ANY, good_weapon,
     "name.first" , "must be readable"      , obj_diff.ANY, /^\w+$/,
     "name.last"  , "may no longer be Smith", "Smith"     , /^\w+$/,
@@ -149,8 +149,8 @@ A useful trick with *atmost()* is to assert no changes.
 
 ```javascript
 try {
-  diff2.assert.atmost();   // No rules given, i.e. "zero changes, at most"
-  diff2.assert.nochange(); // Same as atmost() but more readable.
+  diff2.assert_atmost();   // No rules given, i.e. "zero changes, at most"
+  diff2.assert_nochange(); // Same as atmost() but more readable.
 } catch (er) {
   console.error("Sorry, no changes allowed");
 }
@@ -171,7 +171,7 @@ First of all, CouchDB changes document metadata under the hood, and you don't wa
   * `_id` for document creation
   * `_rev` may change appropriately.
   * `_revisions.ids` and `_revisions.start` may change appropriately.
-3. *assert.atleast()* and *assert.atmost()* throw `{"forbidden": <reason>}` objects that Couch likes.
+3. *assert_atleast()* and *assert_atmost()* throw `{"forbidden": <reason>}` objects that Couch likes.
 
 Thus, this is your typical `validate_doc_update` function:
 
@@ -196,13 +196,13 @@ Of course, sometimes you *want* changes in every update, such as timestamp valid
 ```javascript
 if(!oldDoc)
   // Creation, require the timestamp fields.
-  diff.assert.atleast(
+  diff.assert_atleast(
     'created_at', 'timestamp required', GONE, TIMESTAMP,
     'updated_at', 'timestamp required', GONE, newDoc.created_at // Must match created_at
   );
 else
   // Update, exact() will reject changes to .created_at (and all other fields)
-  diff.assert.exactly(
+  diff.assert_exactly(
     'updated_at', 'Must be a timestamp'  , TIMESTAMP, TIMESTAMP,
     'updated_at', 'Must be later in time', TIMESTAMP, GREATER
   );

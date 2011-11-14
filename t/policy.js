@@ -30,16 +30,23 @@ test('No change', function(t) {
   var diff = obj_diff(obj, obj);
 
   t.equal(diff.nochange(), true, 'nochange detects no change')
+  t.doesNotThrow(function() {
+    diff.assert_nochange();
 
-  diff = ast_diff(obj, obj);
-  t.doesNotThrow(function() { diff.nochange(); })
+    diff = ast_diff(obj, obj);
+    diff.nochange();
+  }, 'nochange assertions do not throw for unchanged data')
 
   diff = obj_diff({foo:'bar'}, {foo:'bar'});
   t.equal(diff.nochange('foo', 'this should be ignored', 'bar', 'new bar value'),
           true, 'nochange detects no change and ignores extra arguments');
 
-  diff = ast_diff({foo:'bar'}, {foo:'bar'});
-  t.doesNotThrow(function() { diff.nochange('foo', 'this should be ignored', 'bar', 'new bar value'); })
+  t.doesNotThrow(function() {
+    diff.assert_nochange('foo', 'this should also be ignored', 'bar', 'new ignored bar value');
+
+    diff = ast_diff(obj, obj);
+    diff.nochange('foo', 'ignored again', 'bar', 'also also ignored');
+  }, 'nochange assertions with arguments do not throw for unchanged data')
 
   t.end()
 })
