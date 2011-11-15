@@ -321,7 +321,7 @@ function tester(t, expected, diff_mod) {
     var change_to   = diff[change_key].to;
 
     // Round-trip through JSON to make sure it's JSON-storable.
-    var rule_0 = new rules.Rule(key, oldval, newval);
+    var rule_0 = new rules.Rule(key, message, oldval, newval);
     //console.error('Before: ' + I(rule))
     var rule_j = JSON.stringify(rule_0);
     //console.error('JSON: ' + I(rule))
