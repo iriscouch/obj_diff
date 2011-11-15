@@ -126,7 +126,10 @@ try {
     "weapon"           , "cannot be sharp"     , obj_diff.ANY, good_weapon
   );
 } catch (er) {
-  console.error("Change required: " + er);
+  if(!er.diff)
+    throw er; // Unknown error, not a policy failure, e.g. bad parameters, or a predicate error.
+
+  console.error("Hey! " + er.message); // e.g. Hey! options.log.level must upgrade to info
 }
 
 try {
@@ -137,7 +140,11 @@ try {
     "name.middle", "must be one letter"    , obj_diff.ANY, /^\w$/
   );
 } catch (er) {
-  console.error("Sorry: " + er);
+  if(!er.diff)
+    throw er; // Unknown error
+
+  // .reason, .key, .from, .to are available.
+  console.error(er.key + " is wrong because it " + er.reason); // detailed
 }
 
 function good_weapon(weapon) {
