@@ -15,10 +15,11 @@
 //    limitations under the License.
 
 var test = require('tap').test
+  , _test = test, noop = function() {} // for activating/deactivating tests
   , util = require('util')
   , obj_diff = require('../api')
-  , ast_diff = obj_diff.defaults({assert:true})
   , doc_diff = require('../api').defaults({couchdb:true})
+  //, ast_diff = require('../api').defaults({assert:true})
   , ANY    = obj_diff.ANY
   , GONE   = obj_diff.GONE
   , TRUTHY = obj_diff.TRUTHY
@@ -33,8 +34,8 @@ test('No change', function(t) {
   t.doesNotThrow(function() {
     diff.assert_nochange();
 
-    diff = ast_diff(obj, obj);
-    diff.nochange();
+    //diff = ast_diff(obj, obj);
+    //diff.nochange();
   }, 'nochange assertions do not throw for unchanged data')
 
   diff = obj_diff({foo:'bar'}, {foo:'bar'});
@@ -44,8 +45,8 @@ test('No change', function(t) {
   t.doesNotThrow(function() {
     diff.assert_nochange('foo', 'this should also be ignored', 'bar', 'new ignored bar value');
 
-    diff = ast_diff(obj, obj);
-    diff.nochange('foo', 'ignored again', 'bar', 'also also ignored');
+    //diff = ast_diff(obj, obj);
+    //diff.nochange('foo', 'ignored again', 'bar', 'also also ignored');
   }, 'nochange assertions with arguments do not throw for unchanged data')
 
   t.end()
@@ -210,12 +211,21 @@ test('Utility functions', function(t) {
 
 function make_tester(method, assertion, t, diff_mod) {
   diff_mod = diff_mod || obj_diff;
+  //var asserts_diff_mod = diff_mod.defaults({assert:true});
 
   return tester(assertion == 'pass');
 
   function tester(expected) {
     return function(message, a, b) {
       var policy = Array.prototype.slice.call(arguments, 3);
+
+      // assert_atmost, assert_atleast, etc. have an extra parameter.
+      var asserting_policy = [];
+      for(var i = 0; i < policy.length; i++) {
+        asserting_policy.push(policy[i]);
+        if(i % 3 == 0)
+          asserting_policy.push(message);
+      }
 
       message = [ message
                 , JSON.stringify(a)
@@ -226,7 +236,27 @@ function make_tester(method, assertion, t, diff_mod) {
 
       var diff = diff_mod(a, b);
       var result = diff[method].apply(diff, policy);
+
       t.equal(result, expected, message);
+
+      if(expected) {
+        t.doesNotThrow(assert_with_method, 'Assertion method pass: ' + message);
+        //t.doesNotThrow(assert_with_module, 'Assertion module pass: ' + message);
+      } else {
+        t.throws(assert_with_method, 'Asserting ' + message);
+        //t.throws(assert_with_module, 'Assertion module fail: ' + message);
+      }
+
+      function assert_with_method() {
+        var assert_method = 'assert_' + method;
+        console.error('What to do: ' + util.inspect(asserting_policy));
+        diff[assert_method].apply(diff, asserting_policy);
+      }
+
+      function assert_with_module() {
+        var asserting_diff = asserts_diff_mod(a, b);
+        asserting_diff[method].apply(diff, asserting_policy);
+      }
     }
   }
 }
