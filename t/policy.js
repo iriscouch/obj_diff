@@ -249,7 +249,19 @@ function make_tester(method, assertion, t, diff_mod) {
 
       function assert_with_method() {
         var assert_method = 'assert_' + method;
-        diff[assert_method].apply(diff, asserting_policy);
+        try       {
+          diff[assert_method].apply(diff, asserting_policy)
+        } catch(er) {
+          t.ok(er.diff, 'Diff error occurs: ' + assert_method+'('+util.inspect(asserting_policy)+')');
+          if(method == 'atmost')
+            t.ok(er.message.match(/^Invalid:/), 'Correct atmost error message');
+          else if(method == 'atleast')
+            t.ok(er.message.match(/^Required:/), 'Correct atmost error message');
+          else
+            t.fail('Unknown method for message testing: ' + assert_method);
+
+          throw er;
+        }
       }
 
       function assert_with_module() {
