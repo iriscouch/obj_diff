@@ -16,6 +16,7 @@ require('defaultable').def(module,
   {
   }, function(module, exports, DEFS, require) {
 
+log("I will require");
 var lib = require('./lib')
   , diffs = require('./lib/diffs')
   , rules = require('./lib/rules')
