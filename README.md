@@ -259,9 +259,9 @@ obj_diff uses [node-tap][tap] unit tests. Install it globally (`npm -g install n
     $ ./node_modules/.bin/tap t
     ok api.js ......................... 82/82
     ok diffs.js ....................... 60/60
-    ok policy.js ...................... 76/76
+    ok policy.js .................... 123/123
     ok rules.js ..................... 774/774
-    total ........................... 996/996
+    total ......................... 1043/1043
 
     ok
 
