@@ -249,7 +249,6 @@ function make_tester(method, assertion, t, diff_mod) {
 
       function assert_with_method() {
         var assert_method = 'assert_' + method;
-        console.error('What to do: ' + util.inspect(asserting_policy));
         diff[assert_method].apply(diff, asserting_policy);
       }
 
