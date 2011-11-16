@@ -252,11 +252,20 @@ function make_tester(method, assertion, t, diff_mod) {
         try       {
           diff[assert_method].apply(diff, asserting_policy)
         } catch(er) {
-          t.ok(er.diff, 'Diff error occurs: ' + assert_method+'('+util.inspect(asserting_policy)+')');
+          var msg;
+          if(diff_mod === doc_diff) {
+            msg = er.forbidden;
+            t.ok(msg, 'Couch diff error: ' + assert_method+'('+util.inspect(asserting_policy)+')');
+          } else {
+            msg = er.message;
+            t.ok(msg, 'Normal diff error: ' + assert_method+'('+util.inspect(asserting_policy)+')');
+            t.ok(er.diff, 'Normal diff error: ' + assert_method+'('+util.inspect(asserting_policy)+')');
+          }
+
           if(method == 'atmost')
-            t.ok(er.message.match(/^Invalid:/), 'Correct atmost error message');
+            t.ok(msg.match(/^Invalid:/), 'Correct atmost error message');
           else if(method == 'atleast')
-            t.ok(er.message.match(/^Required:/), 'Correct atmost error message');
+            t.ok(msg.match(/^Required:/), 'Correct atmost error message');
           else
             t.fail('Unknown method for message testing: ' + assert_method);
 

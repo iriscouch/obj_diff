@@ -85,8 +85,11 @@ function api_test(t, style) {
       try { func() }
       catch (hissy) {
         // Match failures are fine. Only look for errors resulting from bad calls.
-        if(hissy.name !== 'Error' || !hissy.diff)
-          throw hissy;
+        if(style == 'plain' && hissy.name === 'Error' && hissy.diff)
+          return;
+        if(style == 'couchdb' && typeof hissy.forbidden === 'string')
+          return;
+        throw hissy;
       }
     }, style + ' ' + message)
   }
