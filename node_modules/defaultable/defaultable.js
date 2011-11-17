@@ -44,7 +44,19 @@ function defaultable(real_module, initial_defs, definer) {
   function workaround_require(path) {
     if(/^\.\//.test(path) || /^\.\.\//.test(path))
       path = path_lib.resolve(mod_dir, path);
-    return real_require(path);
+
+    try       {
+      return real_require(path)
+    } catch(er) {
+      // This CouchDB workaround really belongs in CouchDB. CouchDB errors look like this:
+      //   ["error","invalid_require_path","Must require a JavaScript string, not: object"]
+      if(er[0] !== "error" || er[1] !== "invalid_require_path"
+      || er[2] !== "Must require a JavaScript string, not: object")
+        throw er;
+
+      try        { return real_require(path + '/index') }
+      catch(er2) { throw er                             } // Nope, throw the original error.
+    }
   }
 
   var defaulter = make_defaulter({});
