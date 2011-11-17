@@ -9,7 +9,7 @@
                 , "url": "git://github.com/iriscouch/obj_diff" }
 , "engines": [ "node" ]
 
-, "dependencies": { "defaultable": "0.7.1"
+, "dependencies": { "defaultable": "0.7.2"
                   }
 
 , "devDependencies": { "tap": "0.0.13"
