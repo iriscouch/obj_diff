@@ -263,7 +263,7 @@ function make_tester(method, assertion, t, diff_mod) {
           }
 
           if(method == 'atmost')
-            t.ok(msg.match(/^Invalid:/), 'Correct atmost error message');
+            t.ok(msg.match(/^Invalid change:/), 'Correct atmost error message');
           else if(method == 'atleast')
             t.ok(msg.match(/^Required:/), 'Correct atmost error message');
           else
