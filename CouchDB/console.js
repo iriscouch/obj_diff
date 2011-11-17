@@ -4,6 +4,8 @@
 if(typeof console === 'undefined')
   console = {};
 
+console.dir   = console.dir   || dir;
+
 console.log   = console.log   || logger;
 console.error = console.error || logger;
 
@@ -14,4 +16,8 @@ function logger(fmt) {
   })
 
   return log(fmt);
+}
+
+function dir(obj) {
+  return log(obj);
 }
