@@ -19,9 +19,12 @@ require('defaultable').def(module,
 var lib = require('./lib')
   , diffs = require('./lib/diffs')
   , rules = require('./lib/rules')
+  , couchdb = require('./lib/couchdb')
   ;
 
 exports = module.exports = diffs.diff;
+
+exports.couchdb_install = couchdb.install;
 
 exports.Diff = diffs.Diff;
 exports.Rule = rules.Rule;

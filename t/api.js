@@ -94,3 +94,22 @@ function api_test(t, style) {
     }, style + ' ' + message)
   }
 }
+
+test('CouchDB package builder', function(t) {
+  t.throws(no_doc, {name:'AssertionError', message:'Document object required'});
+  function no_doc() {
+    obj_diff.couchdb_install();
+  }
+
+  var result, doc = {};
+  result = obj_diff.couchdb_install(doc);
+  t.is(doc, result, 'couchdb_install should return the document it modifies too');
+
+  t.type(doc, 'object', 'CouchDB module is an object')
+  t.type(doc.version, 'string', 'Module indicates its version')
+
+  t.type(doc.defaultable, 'string', 'Defaultable module installed')
+  t.type(doc.obj_diff   , 'string', 'obj_diff module installed')
+
+  t.end()
+})

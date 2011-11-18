@@ -1,25 +1,12 @@
 var fs = require('fs')
   , path = require('path')
+  , obj_diff = require('../api')
   , couchapp = require('couchapp')
   ;
 
 
-function read(path) { return fs.readFileSync(__dirname + '/../' + path, 'utf8') }
-
-
 var ddoc = module.exports = { _id:'_design/obj_diff' };
-
-ddoc.path = read('CouchDB/path.js');
-ddoc.util = read('CouchDB/util.js');
-ddoc.assert = read('CouchDB/assert.js');
-ddoc.console = read('CouchDB/console.js');
-ddoc.defaultable = read('node_modules/defaultable/defaultable.js');
-
-ddoc.obj_diff = read('api.js');
-ddoc.lib = { 'index': read('lib/index.js')
-           , 'diffs': read('lib/diffs.js')
-           , 'rules': read('lib/rules.js')
-           }
+obj_diff.couchdb_install(ddoc);
 
 ddoc.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
   require('console');
