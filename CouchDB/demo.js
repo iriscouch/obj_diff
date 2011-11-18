@@ -9,8 +9,6 @@ var ddoc = module.exports = { _id:'_design/obj_diff' };
 obj_diff.couchdb_install(ddoc);
 
 ddoc.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
-  require('console');
-
   var doc_diff = require('obj_diff').defaults({couchdb:true})
     , GONE = doc_diff.GONE
     , ANY  = doc_diff.ANY
@@ -52,7 +50,6 @@ ddoc.shows.test = function(doc, req) {
   var response = {'headers': {}};
 
   provides('html', function() {
-    require('console');
     var od = require('obj_diff')
       , D = od.defaults({couchdb:true})
 
